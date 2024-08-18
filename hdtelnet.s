@@ -7,7 +7,8 @@
             org   $2000
 
 ; Do once
-            jsr   reset     ; Initialize the Wiznet
+            jsr   wizinit   ; Initialize the Wiznet
+            jsr   vidinit   ; Initialize VidHD output mode
             jsr   openconn  ; Open outbound TCP connection
 
 ; Do forever
@@ -15,9 +16,9 @@ mainloop    jsr   netin     ; Get a byte frm network
             bcc   localin   ; carry clear = no byte
             jsr   dispchar  ; Display received character
 localin     jsr   kbd       ; Check keyboard
-            bcc   loopend   ; carry clear = no key
-            jsr   dispchar  ; Display local character
-loopend     bra   mainloop
+            bcc   mainloop  ; carry clear = no key
+            jsr   out       ; Send new character
+            bra   mainloop
 
 cardslot    dfb   1 ; card slot
 
@@ -27,8 +28,11 @@ my_gw       db    192,168,64,1
 my_mask     db    255,255,255,0
 mac_addr    db    $08,00,$20,$C0,$10,$20
 my_ip       db    192,168,64,254
-
 port_num    ddb   6502
+*-------------------------------
+* destination
+dest_ip     db    192,168,64,1
+dest_port   ddb   23
 *-------------------------------
 * internal variables
 active      db    0
@@ -76,7 +80,7 @@ getdata
 
 ; Just reset the Uthernet II
 ; all regs preserved
-reset       pha
+wizinit     pha
             phx
             phy
             lda   cardslot
@@ -121,7 +125,6 @@ initfail    sec
 openconn    pha
             phx
             phy
-            jsr   reset
             lda   #$03                ; Indirect Bus IF mode, Address Auto-Increment
             jsr   setglobalreg
 
@@ -163,6 +166,16 @@ openconn    pha
             jsr   setaddr             ; $0401 = S0 command port
             lda   #$01
             jsr   setdata             ; send OPEN command
+
+            lda   #$04
+            ldx   #$0C
+            jsr   setaddr             ; $040C = S0 dest ip
+            ldx   #0
+]dest       lda   dest_ip,x
+            jsr   setdata
+            inx
+            cpx   #4+2
+            bne   ]dest               ; dest ip and port now set
 
 ]slp        lda   #$04
             ldx   #$03
@@ -437,14 +450,27 @@ wt          nop
             clc
             rts
 
+; kbd
+; Check if a character is being entered
+; if carry set, byte in A
+; if carry clear, no byte
+kbd         clc
+            bit   $c000
+            bpl   nokey
+            lda   $c010
+            sec
+nokey       rts
+
 ; dispchar
 ; Write the character in A to the screen
 ; TODO
-dispchar
+dispchar    jsr   $FDED
             rts
 
-; kbd
-; Check if a character is being entered
+
+; vidinit
+; Initialize video / VidHD / etc to desired mode
 ; TODO
-kbd
+vidinit     jsr   $c300
+            jsr   $FC58
             rts
