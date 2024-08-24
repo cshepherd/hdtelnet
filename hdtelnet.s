@@ -12,9 +12,15 @@
             jsr   openconn  ; Open outbound TCP connection
 
 ; Do forever
+; part I: display chars from net
 mainloop    jsr   netin     ; Get a byte frm network
             bcc   localin   ; carry clear = no byte
-            jsr   dispchar  ; Display received character
+            cmp   #$FF      ; telnet protocol IAC
+            bne   maindisp
+            jsr   rcvd_iac
+maindisp    jsr   dispchar  ; Display received character
+
+; part III: send chars from kbd to net
 localin     jsr   kbd       ; Check keyboard
             bcc   mainloop  ; carry clear = no key
             jsr   out       ; Send new character
@@ -32,7 +38,7 @@ port_num    ddb   6502
 *-------------------------------
 * destination
 dest_ip     db    192,168,64,1
-dest_port   ddb   23
+dest_port   ddb   6502
 *-------------------------------
 * internal variables
 active      db    0
@@ -76,6 +82,46 @@ setdata
 ; a = value
 getdata
 ]cn5        lda   $c000       ; ]cn5+1 = card_base + 3
+            rts
+
+; received telnet IAC
+; parse the rest
+rcvd_iac    jsr   netin       ; get next byte
+            bcc   do_abort    ; no byte? just bail
+            cmp   #$FD        ; DO
+            beq   iac_do
+            cmp   #$FB        ; WILL
+            beq   iac_will
+            cmp   #$FE        ; DON'T
+            beq   iac_dont
+            cmp   #$FC        ; WON'T
+            beq   iac_wont
+do_abort    rts               ; bail (shouldn't happen)
+iac_do      jsr   netin
+            bcc   do_abort
+            jmp   send_wont   ; send IAC WON'T for this DO
+iac_will    jsr   netin
+            bcc   do_abort
+            jmp   send_dont   ; send IAC DON'T for this WILL
+iac_dont    jsr   netin       ; get DON'T and throw it away
+            rts
+iac_wont    jsr   netin       ; get WON'T and throw it away
+            rts
+send_wont   pha
+            lda   #$FF        ; IAC
+            jsr   out
+            lda   #$FC        ; WON'T
+            jsr   out
+            pla               ; saved option number
+            jsr   out
+            rts
+send_dont   pha
+            lda   #$FF        ; IAC
+            jsr   out
+            lda   #$FE        ; DON'T
+            jsr   out
+            pla               ; saved option number
+            jsr   out
             rts
 
 ; Just reset the Uthernet II
@@ -458,14 +504,23 @@ kbd         clc
             bit   $c000
             bpl   nokey
             lda   $c010
+            and   #$7F    ; strip hi bit
             sec
 nokey       rts
 
 ; dispchar
 ; Write the character in A to the screen
 ; TODO
-dispchar    jsr   $FDED
-            rts
+dispchar
+            ora   #$80     ; set hi bit
+*            pha
+            jsr   $FDED
+*            pla
+*            cmp   #$0a
+*            bne   dispgo
+*            lda   #$0D
+*            jsr   $FDED
+dispgo      rts
 
 
 ; vidinit
