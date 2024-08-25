@@ -7,6 +7,9 @@
             org   $2000
 
 ; Do once
+            tsx
+            stx   stackptr  ; save stack when we were invoked
+
             jsr   wizinit   ; Initialize the Wiznet
             jsr   vidinit   ; Initialize VidHD output mode
             jsr   openconn  ; Open outbound TCP connection
@@ -48,6 +51,7 @@ rx_rcvd     db    00,00
 tx_wr       db    00,00
 tx_ptr      db    00,00
 tx_free     db    00,00
+stackptr    db    0
 
 ; set addr
 ; a = reg no hi
@@ -272,6 +276,14 @@ closed      lda   #00
             clc                       ; CLC = not connected
             rts
 
+; exit / stop everything
+; restore original stack ptr and then rts
+; this lets us just jump here no matter where we are
+; or how deep the call stack is
+exit        ldx   stackptr
+            txs                       ; restore original stack pointer
+            rts
+
 ; disconnect / close tcp socket
 ; all regs preserved
 discon      pha
@@ -322,8 +334,13 @@ flush       pha
 netin       phx
             phy
             lda   #$04
-            ldx   #$28
-            jsr   setaddr             ; S0_RX_RD (un-translated rx base)
+            ldx   #$03
+            jsr   setaddr
+            jsr   getdata
+            bne   noclose
+            jmp   exit
+noclose     ldx   #$28
+            jsr   setaddrlo           ; S0_RX_RD (un-translated rx base)
             jsr   getdata
             sta   rx_rd+1             ; +1 to reverse endianness
             sta   rx_rd_orig+1
