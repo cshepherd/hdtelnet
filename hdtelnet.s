@@ -280,9 +280,10 @@ closed      lda   #00
 ; restore original stack ptr and then rts
 ; this lets us just jump here no matter where we are
 ; or how deep the call stack is
-exit        ldx   stackptr
+exit        jsr   discon              ; put uther ii in a nice state
+            ldx   stackptr
             txs                       ; restore original stack pointer
-            rts
+            rts                       ; hasta la vista
 
 ; disconnect / close tcp socket
 ; all regs preserved
