@@ -194,7 +194,7 @@ openconn    pha
             ldx   #$1a
             jsr   setaddr             ; 001A - rx mem
 
-            lda   #$55                ; 00 = 4x 2KB socket buffers
+            lda   #$55                ; 55 = 4x 2KB socket buffers
             jsr   setdata             ; rx mem: 2K for up to 4 socks
             jsr   setdata             ; tx mem (via auto inc): 2K for up to 4 sockets
 

@@ -66,29 +66,29 @@ udpsetup    pha
             jsr   setdata             ; rx mem: 2K for up to 4 socks
             jsr   setdata             ; tx mem (via auto inc): 2K for up to 4 sockets
 
-            lda   #$04
+            lda   #$05
             ldx   #$04
-            jsr   setaddr             ; 0404 = S0 source port
+            jsr   setaddr             ; 0504 = S1 source port
             lda   port_num
             jsr   setdata
             lda   port_num+1
             jsr   setdata
 
-            lda   #$04
+            lda   #$05
             ldx   #$00
-            jsr   setaddr             ; $0400 = S0 mode port
+            jsr   setaddr             ; $0500 = S1 mode port
             lda   #$02
             jsr   setdata             ; $02 = TCP
 
-            lda   #$04
+            lda   #$05
             ldx   #$01
-            jsr   setaddr             ; $0401 = S0 command port
+            jsr   setaddr             ; $0501 = S1 command port
             lda   #$01
             jsr   setdata             ; send OPEN command
 
-            lda   #$04
+            lda   #$05
             ldx   #$0C
-            jsr   setaddr             ; $040C = S0 dest ip
+            jsr   setaddr             ; $050C = S1 dest ip
             ldx   #0
 ]dest       lda   dns_ip,x
             jsr   setdata
@@ -112,7 +112,7 @@ getres      phx
             phy
             pha
             ldx   #$28
-            jsr   setaddrlo           ; S0_RX_RD (un-translated rx base)
+            jsr   setaddrlo           ; S1_RX_RD (un-translated rx base)
             jsr   getdata
             sta   rx_rd+1             ; +1 to reverse endianness
             sta   rx_rd_orig+1
@@ -121,17 +121,17 @@ getres      phx
             sta   rx_rd_orig
 
             lda   rx_rd               ; AND #$07ff
-            and   #$FF                ; ADD #$6000
+            and   #$FF                ; ADD #$6800
             sta   rx_rd               ; former 65816 zone
             lda   rx_rd+1             ; (hence little endian)
             and   #$07
             clc
-            adc   #$60
+            adc   #$68
             sta   rx_rd+1
 
-]dnswt      lda   #$04
+]dnswt      lda   #$05
             ldx   #$26
-            jsr   setaddr             ; rx size = $0426
+            jsr   setaddr             ; rx size = $0526
             jsr   getdata
             sta   rx_rcvd+1
             jsr   getdata
@@ -161,8 +161,8 @@ have_byteU  lda   rx_rd+1             ; at least 1 byte available
             sta   rx_rd_orig+1        ; converted 65816 addition
 
             ldy   #1
-            lda   #$04
-            ldx   #$28                ; add rx_rcvd to rx_rd_orig and store back in $0428
+            lda   #$05
+            ldx   #$28                ; add rx_rcvd to rx_rd_orig and store back in $0528
             jsr   setaddr
             lda   rx_rd_orig+1
             jsr   setdata
@@ -170,7 +170,7 @@ have_byteU  lda   rx_rd+1             ; at least 1 byte available
             jsr   setdata
 
             ldx   #$01
-            jsr   setaddrlo           ; S0 command register
+            jsr   setaddrlo           ; S1 command register
             lda   #$40
             jsr   setdata             ; RECV command
 
@@ -185,9 +185,9 @@ have_byteU  lda   rx_rd+1             ; at least 1 byte available
 sendquery   phx
             phy
             pha
-            lda   #$04
+            lda   #$05
             ldx   #$24
-            jsr   setaddr             ; S0_TX_WR
+            jsr   setaddr             ; S1_TX_WR
             jsr   getdata
             sta   tx_wr+1             ; +1 to reverse endianness
             sta   tx_ptr+1
@@ -197,17 +197,17 @@ sendquery   phx
                                       ; + 4KB, 8KB etc without translation
 
             lda   tx_wr               ; AND #$07ff
-            and   #$FF                ; ADD #$4000
+            and   #$FF                ; ADD #$4800
             sta   tx_wr               ; former 65816 zone
             lda   tx_wr+1             ; (hence little endian)
             and   #$07
             clc
-            adc   #$40
+            adc   #$48
             sta   tx_wr+1
 
-]txwt       lda   #$04
+]txwt       lda   #$05
             ldx   #$20
-            jsr   setaddr             ; tx free space = $0420 blaze it
+            jsr   setaddr             ; tx free space = $0520
             jsr   getdata
             sta   tx_free+1
             jsr   getdata
@@ -239,22 +239,22 @@ havebyte3U  lda   tx_wr+1
             adc   #00
             sta   tx_ptr+1
 
-            lda   #$04
+            lda   #$05
             ldx   #$24
             jsr   setaddr
             lda   tx_ptr+1
             jsr   setdata
             lda   tx_ptr
-            jsr   setdata             ; inc S0_TX_WR to add the bytes
+            jsr   setdata             ; inc S1_TX_WR to add the bytes
 
-            lda   #$04
+            lda   #$05
             ldx   #$01
-            jsr   setaddr             ; S0 command register
+            jsr   setaddr             ; S1 command register
             lda   #$20
             jsr   setdata             ; SEND command
 
 wtU         nop
-            lda   #$04
+            lda   #$05
             ldx   #$01
             jsr   setaddr
             jsr   getdata
