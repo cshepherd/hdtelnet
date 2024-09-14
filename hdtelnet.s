@@ -581,6 +581,7 @@ slotdet     ldx   #$FF
             beq   notfound
             jsr   wizinit2
             bcs   ]next
+            sta   cardslot
             jsr   $fdda
             lda   #$0D
             jsr   $fded
