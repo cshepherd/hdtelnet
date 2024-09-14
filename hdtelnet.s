@@ -11,7 +11,17 @@
 
             jsr   wizinit   ; Initialize the Wiznet for reals
             jsr   vidinit   ; Initialize VidHD output mode
-            jsr   openconn  ; Open outbound TCP connection
+
+            jsr   udpsetup  ; Set DNS server as S1 UDP destination
+            jsr   getname
+            jsr   printstart
+            jsr   copyname
+            jsr   sendquery ; Send the UDP DNS query
+            jsr   getres    ; Await / get DNS answer
+            jsr   parseres  ; Parse DNS result
+            jsr   printres  ; Print DNS answer
+
+            jsr   openconn  ; Open outbound S0 TCP connection
 
 ; Do forever
 ; part I: display chars from net

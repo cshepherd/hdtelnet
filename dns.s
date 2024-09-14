@@ -3,15 +3,6 @@
 * 9/14/2024 ballmerpeak
 *-------------------------------
 
-            jsr   udpsetup  ; Set DNS server as UDP destination
-            jsr   getname
-            jsr   printstart
-            jsr   copyname
-            jsr   sendquery ; Send the UDP DNS query
-            jsr   getres    ; Await / get DNS answer
-            jsr   parseres  ; Parse DNS result
-            jsr   printres  ; Print DNS answer
-
 *-------------------------------
 * DNS server
 dns_ip      db    8,8,8,8
