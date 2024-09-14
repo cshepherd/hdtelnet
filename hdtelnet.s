@@ -7,10 +7,9 @@
             org   $2000
 
 ; Do once
-            tsx
-            stx   stackptr  ; save stack when we were invoked
+            jsr   slotdet   ; Detect slot
 
-            jsr   wizinit   ; Initialize the Wiznet
+            jsr   wizinit   ; Initialize the Wiznet for reals
             jsr   vidinit   ; Initialize VidHD output mode
             jsr   openconn  ; Open outbound TCP connection
 
@@ -52,6 +51,8 @@ tx_wr       db    00,00
 tx_ptr      db    00,00
 tx_free     db    00,00
 stackptr    db    0
+
+            use   dns.s
 
 ; set addr
 ; a = reg no hi
@@ -546,4 +547,68 @@ dispgo      rts
 ; TODO
 vidinit     jsr   $c300
             jsr   $FC58
+            rts
+
+; slotdet
+; attempt a variant of wizinit for different slots
+; try not to format any disks teehee
+slotdet     ldx   #$FF
+]next       inx
+            lda   slots,x
+            beq   notfound
+            jsr   wizinit2
+            bcs   ]next
+            jsr   $fdda
+            lda   #$0D
+            jsr   $fded
+            rts
+
+notfound    brk   $00
+
+; Order to attempt detection
+slots       db    01,07,02,04,03,05,06,00
+
+; Just reset the Uthernet II
+; all regs preserved
+wizinit2    pha
+            phx
+            phy
+            asl
+            asl
+            asl
+            asl
+            clc
+            adc   #$84
+            sta   ]cn3+1
+            sta   ]cn6+1
+            inc
+            sta   ]cn1+1
+            inc
+            sta   ]cn2+1
+            inc
+            sta   ]cn4+1
+            sta   ]cn5+1
+
+            lda   #$80                ; $80 = reset
+            jsr   setglobalreg
+
+            jsr   getglobalreg
+            bne   initfail2
+
+            lda   #$03
+            jsr   setglobalreg
+            jsr   getglobalreg
+            cmp   #$03
+            bne   initfail2
+
+            clc
+            ply
+            plx
+            pla
+            rts
+
+initfail2   sec
+            ply
+            plx
+            pla
             rts

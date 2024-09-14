@@ -1,11 +1,8 @@
 *-------------------------------
-* DNS test
-* 9/7/2024 ballmerpeak
+* HDTelnet DNS module
+* 9/14/2024 ballmerpeak
 *-------------------------------
 
-            org   $2000
-
-            jsr   wizinit   ; Initialize the Wiznet
             jsr   udpsetup  ; Set DNS server as UDP destination
             jsr   getname
             jsr   printstart
@@ -15,31 +12,12 @@
             jsr   parseres  ; Parse DNS result
             jsr   printres  ; Print DNS answer
 
-            rts
-
-*-------------------------------
-* Uthernet II configuration
-my_gw       db    192,168,64,1
-my_mask     db    255,255,255,0
-mac_addr    db    $08,00,$20,$C0,$10,$20
-my_ip       db    192,168,64,254
-port_num    ddb   6502
-dest_ip     db    0,0,0,0
 *-------------------------------
 * DNS server
 dns_ip      db    8,8,8,8
 
 *-------------------------------
 * internal variables
-active      db    0
-rx_rd       db    00,00
-rx_rd_orig  db    00,00
-rx_rcvd     db    00,00
-tx_wr       db    00,00
-tx_ptr      db    00,00
-tx_free     db    00,00
-stackptr    db    0
-cardslot    db    1
 hex_in      db    0
 bcd_out     db    00,00
 
@@ -59,78 +37,6 @@ dnsresp     ds    4             ; src ip addr
             ds    2             ; src port
             ds    2             ; data length
 reply       ds    256
-
-; set addr
-; a = reg no hi
-; x = reg no lo
-setaddr
-]cn1        sta   $c000       ; ]cn1+1 = card_base + 1
-; set addr lo only
-; x = reg no lo
-setaddrlo
-]cn2        stx   $c000       ; ]cn2+1 = card_base + 2
-            rts
-
-; set global reg
-; a = value
-setglobalreg
-]cn3        sta   $c000       ; ]cn3+1 = card_base + 0
-            rts
-
-; read global reg
-; a = value
-getglobalreg
-]cn6        lda   $c000       ; ]cn6+1 = card_base + 0
-            rts
-
-; send data
-; a = value
-setdata
-]cn4        sta   $c000       ; ]cn4+1 = card_base + 3
-            rts
-
-; read data
-; a = value
-getdata
-]cn5        lda   $c000       ; ]cn5+1 = card_base + 3
-            rts
-
-; Just reset the Uthernet II
-; all regs preserved
-wizinit     pha
-            phx
-            phy
-            lda   cardslot
-            asl
-            asl
-            asl
-            asl
-            clc
-            adc   #$84
-            sta   ]cn3+1
-            sta   ]cn6+1
-            inc
-            sta   ]cn1+1
-            inc
-            sta   ]cn2+1
-            inc
-            sta   ]cn4+1
-            sta   ]cn5+1
-
-            lda   #$80                ; $80 = reset
-            jsr   setglobalreg
-
-            jsr   getglobalreg
-            bne   initfail
-
-            clc
-            ply
-            plx
-            pla
-            rts
-
-initfail    sec
-            brk  $00                  ; YOU LOSE
 
 ; set up uthernet II MAC and IP params
 ; then send DNS question via wiznet
@@ -199,7 +105,6 @@ udpsetup    pha
             plx
             pla
             rts
-sockfail    brk   $01                 ; YOU LOSE (SOCK_CLOSED)
 
 ; getres
 ; receive DNS result
@@ -231,13 +136,13 @@ getres      phx
             sta   rx_rcvd+1
             jsr   getdata
             sta   rx_rcvd             ; rx_rcvd now has bytes rcvd
-            bne   have_byte
+            bne   have_byteU
             lda   rx_rcvd+1
-            bne   have_byte
+            bne   have_byteU
 
             bra   ]dnswt
 
-have_byte   lda   rx_rd+1             ; at least 1 byte available
+have_byteU  lda   rx_rd+1             ; at least 1 byte available
             ldx   rx_rd
             jsr   setaddr             ; start at this base address
             ldx   #00
@@ -269,7 +174,7 @@ have_byte   lda   rx_rd+1             ; at least 1 byte available
             lda   #$40
             jsr   setdata             ; RECV command
 
-have_byte2  pla                       ; restore the byte
+            pla                       ; restore the byte
             ply                       ; restore saved regs
             plx
             sec
@@ -309,13 +214,13 @@ sendquery   phx
             sta   tx_free             ; store little-endian
 
             lda   tx_free+1
-            bne   havebyte3
+            bne   havebyte3U
             lda   tx_free
-            bne   havebyte3
+            bne   havebyte3U
             bra   ]txwt               ; wait if no tx buffer byte free
                                       ; (i srsly doubt this ever happens)
 
-havebyte3   lda   tx_wr+1
+havebyte3U  lda   tx_wr+1
             ldx   tx_wr               ; note little-endian load
             jsr   setaddr             ; start at this base address
 
@@ -326,7 +231,7 @@ havebyte3   lda   tx_wr+1
             cpx   dns_length
             bne   ]slp
 
-notcr       lda   tx_ptr
+            lda   tx_ptr
             clc
             adc   dns_length
             sta   tx_ptr
@@ -348,12 +253,12 @@ notcr       lda   tx_ptr
             lda   #$20
             jsr   setdata             ; SEND command
 
-wt          nop
+wtU         nop
             lda   #$04
             ldx   #$01
             jsr   setaddr
             jsr   getdata
-            bne   wt          ; wait for send completion
+            bne   wtU                ; wait for send completion
 
             pla
             ply
