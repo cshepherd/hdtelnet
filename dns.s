@@ -479,7 +479,19 @@ gn2         bit   $c000
             beq   gn3
             sta   keyin,x
             ora   #$80
+            cmp   #$FF
+            bne   notbs
+            cpx   #00
+            beq   notbs
+            lda   #$88
             jsr   $FDED
+            lda   #$A0
+            jsr   $FDED
+            lda   #$88
+            jsr   $FDED
+            dex
+            bra   gn2
+notbs       jsr   $FDED
             inx
             cpx   #64
             bne   gn2
