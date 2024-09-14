@@ -33,8 +33,12 @@ dcont       jsr   parseres  ; Parse DNS result
 mainloop    jsr   netin     ; Get a byte frm network
             bcc   localin   ; carry clear = no byte
             cmp   #$FF      ; telnet protocol IAC
-            bne   maindisp
+            bne   maindisp2
             jsr   rcvd_iac
+maindisp2   cmp   #$1B      ; is esc?
+            bne   maindisp
+            jsr   rcvd_esc
+            bra   localin
 maindisp    jsr   dispchar  ; Display received character
 
 ; part III: send chars from kbd to net
@@ -102,6 +106,23 @@ setdata
 ; a = value
 getdata
 ]cn5        lda   $c000       ; ]cn5+1 = card_base + 3
+            rts
+
+; vt100 character positioning and screen clearing
+rcvd_esc    jsr   netin
+            cmp   #'['
+            bne   esc_done
+            jsr   netin
+            cmp   #'H'
+            beq   movetop
+            cmp   #'J'
+            beq   clears
+esc_done    rts
+;movetop     stz   $24
+;            stz   $25
+;            rts
+movetop
+clears      jsr   $FC58
             rts
 
 ; received telnet IAC
@@ -297,6 +318,7 @@ closed      lda   #00
 ; this lets us just jump here no matter where we are
 ; or how deep the call stack is
 exit        jsr   discon              ; put uther ii in a nice state
+            brk   $00                 ; TODO
             rts                       ; hasta la vista
 
 ; disconnect / close tcp socket
@@ -418,12 +440,6 @@ have_byte   lda   rx_rd+1             ; at least 1 byte available
             jsr   setdata
             lda   rx_rd_orig
             jsr   setdata
-
-* muti-byte-receive support broken
-*            lda   rx_rcvd
-*            bne   have_byte2
-*            lda   rx_rcvd+1
-*            bne   have_byte2
 
             ldx   #$01
             jsr   setaddrlo           ; S0 command register
