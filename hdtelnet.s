@@ -7,10 +7,10 @@
             org   $2000
 
 ; Do once
+            jsr   vidinit   ; Initialize VidHD output mode
             jsr   slotdet   ; Detect slot
 
             jsr   wizinit   ; Initialize the Wiznet for reals
-            jsr   vidinit   ; Initialize VidHD output mode
 
             jsr   udpsetup  ; Set DNS server as S1 UDP destination
             jsr   getname
@@ -50,7 +50,7 @@ port_num    ddb   6502
 *-------------------------------
 * destination
 dest_ip     db    192,168,64,1
-dest_port   ddb   6502
+dest_port   ddb   23
 *-------------------------------
 * internal variables
 active      db    0
