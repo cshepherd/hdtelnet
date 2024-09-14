@@ -28,6 +28,7 @@ dnsresp     ds    4             ; src ip addr
             ds    2             ; src port
             ds    2             ; data length
 reply       ds    256
+num_replies =     reply+7
 
 ; set up uthernet II MAC and IP params
 ; then send DNS question via wiznet
@@ -515,8 +516,25 @@ gp3         lda   #00
             jsr   $FDED
             rts
 
+; print dns failure
+printfail   ldx   #00
+pf1         lda   dnsfail,x
+            beq   pf2
+            ora   #$80
+            jsr   $FDED
+            inx
+            bra   pf1
+pf2         ldx   #00
+pf4         lda   keyin,x
+            beq   pf3
+            ora   #$80
+            jsr   $FDED
+            inx
+            bra   pf4
+pf3         rts
 
 ; strings 'n' such
+dnsfail     asc   'DNS failure for name: ',00
 portnum     asc   'Port Number [23]: ',00
 connto      asc   'Connecting to ',00
 enterhost   asc   'Hostname to Connect to: ',00

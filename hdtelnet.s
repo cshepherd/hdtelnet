@@ -18,7 +18,12 @@
             jsr   copyname
             jsr   sendquery ; Send the UDP DNS query
             jsr   getres    ; Await / get DNS answer
-            jsr   parseres  ; Parse DNS result
+
+            lda   num_replies
+            bne   dcont
+            jsr   printfail ; Print DNS failure
+            jmp   exit
+dcont       jsr   parseres  ; Parse DNS result
             jsr   printres  ; Print DNS answer
 
             jsr   openconn  ; Open outbound S0 TCP connection
@@ -292,8 +297,6 @@ closed      lda   #00
 ; this lets us just jump here no matter where we are
 ; or how deep the call stack is
 exit        jsr   discon              ; put uther ii in a nice state
-            ldx   stackptr
-            txs                       ; restore original stack pointer
             rts                       ; hasta la vista
 
 ; disconnect / close tcp socket
@@ -542,13 +545,7 @@ nokey       rts
 ; TODO
 dispchar
             ora   #$80     ; set hi bit
-*            pha
-            jsr   $FDED
-*            pla
-*            cmp   #$0a
-*            bne   dispgo
-*            lda   #$0D
-*            jsr   $FDED
+            jsr   $fded
 dispgo      rts
 
 
