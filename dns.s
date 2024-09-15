@@ -458,6 +458,7 @@ prr2        lda   dest_ip
             jsr   $fdda
             lda   bcd_out
             jsr   $fdda
+
             lda   #$8d
             jsr   $fded
             rts
@@ -518,17 +519,33 @@ gp1         ldx   #00
 gp2         bit   $c000
             bpl   gp2
             lda   $c010
-            and   #$7F
-            cmp   #$0D
+            cmp   #$FF
+            bne   nbs
+            cpx   #00
+            beq   nbs
+            lda   #$88
+            jsr   $FDED
+            lda   #$A0
+            jsr   $FDED
+            lda   #$88
+            jsr   $FDED
+            dex
+            bra   gp2
+nbs         cmp   #$8D
             beq   gp3
-            sta   portin,x
+            cmp   #$B0
+            blt   gp2
+            cmp   #$Ba
+            bge   gp2
+            and   #$7F
+            sta   testasc,x
             ora   #$80
             jsr   $FDED
             inx
-            cpx   #6
+            cpx   #5
             bne   gp2
 gp3         lda   #00
-            sta   portin,x
+            sta   testasc,x
             lda   #$8d
             jsr   $FDED
             rts
@@ -556,6 +573,7 @@ pf3         lda   #$8d
 dnsfail     asc   'DNS failure for name: ',00
 portnum     asc   'Port Number [23]: ',00
 connto      asc   'Connecting to ',00
+connto2     asc   ' on port ',00
 enterhost   asc   'Hostname to Connect to or CTRL-C to exit: ',00
 lookingup   asc   'Looking up: '
 

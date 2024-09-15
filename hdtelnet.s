@@ -26,8 +26,25 @@
 
             jsr   udpsetup  ; Set DNS server as S1 UDP destination
 newconn     jsr   getname
-            bcs   ejmp
-            jsr   printstart
+            bcs   ejmp2
+
+            jsr   getport
+            lda   testasc
+            bne   nc2
+            lda   #00
+            sta   dest_port
+            lda   #23
+            sta   dest_port+1
+            bra   ps00
+nc2         jsr   copyasc
+            jsr   asc2bcd
+            jsr   BCD2BIN
+            lda   BINW+1
+            sta   dest_port
+            lda   BINW
+            sta   dest_port+1
+
+ps00        jsr   printstart
             jsr   copyname
             jsr   sendquery ; Send the UDP DNS query
             jsr   getres    ; Await / get DNS answer
@@ -36,6 +53,7 @@ newconn     jsr   getname
             bne   dcont
             jsr   printfail ; Print DNS failure
             bra   newconn
+ejmp2       jmp   exit
 dcont       jsr   parseres  ; Parse DNS result
             jsr   printres  ; Print DNS answer
 
@@ -59,7 +77,7 @@ localin     jsr   kbd       ; Check keyboard
             bcc   mainloop  ; carry clear = no key
             jsr   out       ; Send new character
             bra   mainloop
-
+newconn2    jmp   newconn
 closedconn  ldx   #$00
 closedcon3  lda   connClosed,x 
             beq   closedcon2
@@ -67,7 +85,7 @@ closedcon3  lda   connClosed,x
             jsr   $fded
             inx
             bra   closedcon3
-closedcon2  bra   newconn
+closedcon2  bra   newconn2
 
 ejmp        jmp   exit
 
