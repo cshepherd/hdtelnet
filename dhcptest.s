@@ -11,8 +11,8 @@
             jsr   getoffer  ; Await / get DHCPOFFER
             jsr   parseoffer  ; Parse DHCPOFFER
             jsr   request   ; Send DHCPREQUEST
-;            jsr   getack    ; Await / get DHCPACK
-
+            jsr   getack    ; Await / get DHCPACK
+            jsr   verifyack ; Verify DHCPACK
             rts
 
 *-------------------------------
@@ -667,3 +667,108 @@ wt2         nop
             plx
             clc
             rts
+
+; getack
+; receive DHCPACK
+getack      phx
+            phy
+            pha
+            ldx   #$28
+            jsr   setaddrlo           ; S0_RX_RD (un-translated rx base)
+            jsr   getdata
+            sta   rx_rd+1             ; +1 to reverse endianness
+            sta   rx_rd_orig+1
+            jsr   getdata
+            sta   rx_rd
+            sta   rx_rd_orig
+
+            lda   rx_rd               ; AND #$07ff
+            and   #$FF                ; ADD #$6000
+            sta   rx_rd               ; former 65816 zone
+            lda   rx_rd+1             ; (hence little endian)
+            and   #$07
+            clc
+            adc   #$60
+            sta   rx_rd+1
+
+]dnswt      lda   #$04
+            ldx   #$26
+            jsr   setaddr             ; rx size = $0426
+            jsr   getdata
+            sta   rx_rcvd+1
+            jsr   getdata
+            sta   rx_rcvd             ; rx_rcvd now has bytes rcvd
+            bne   have_byteE
+            lda   rx_rcvd+1
+            bne   have_byteE
+
+            bra   ]dnswt
+
+have_byteE  lda   rx_rd+1             ; at least 1 byte available
+            ldx   rx_rd
+            jsr   setaddr             ; start at this base address
+            ldx   #00
+]rdresp     jsr   getdata             ; read the byte from the buffer
+            sta   dhcpack,x
+            inx
+            cpx   #255
+            bne   ]rdresp
+
+            ldx   #00
+]rdresp     jsr   getdata             ; read the byte from the buffer
+            sta   dhcpack+255,x
+            inx
+            cpx   rx_rcvd
+            bne   ]rdresp
+
+            lda   rx_rd_orig
+            clc
+            adc   rx_rcvd
+            sta   rx_rd_orig          ; this is what we'll write back to rx_rd
+            lda   rx_rd_orig+1
+            adc   rx_rcvd+1
+            sta   rx_rd_orig+1        ; converted 65816 addition
+
+            ldy   #1
+            lda   #$04
+            ldx   #$28                ; add rx_rcvd to rx_rd_orig and store back in $0428
+            jsr   setaddr
+            lda   rx_rd_orig+1
+            jsr   setdata
+            lda   rx_rd_orig
+            jsr   setdata
+
+            ldx   #$01
+            jsr   setaddrlo           ; S0 command register
+            lda   #$40
+            jsr   setdata             ; RECV command
+
+            pla                       ; restore the byte
+            ply                       ; restore saved regs
+            plx
+            sec
+            rts
+
+verifyack   lda   magiccookie2
+            cmp   #$63
+            bne   ackfail
+            lda   magiccookie2+1
+            cmp   #$82
+            bne   ackfail
+            lda   magiccookie2+2
+            cmp   #$53
+            bne   ackfail
+            lda   magiccookie2+3
+            cmp   #$63
+            bne   ackfail
+
+            clc
+            rts
+
+ackfail     sec
+            rts
+
+dhcpack     ds    400                 ; dhcpack will be about 342 bytes
+ackdata     =     dhcpack+8           ; skip src ip, src port, length
+magiccookie2 =    ackdata+236
+ackopts     =     magiccookie2+4
