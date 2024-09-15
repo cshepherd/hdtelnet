@@ -19,12 +19,14 @@
             jsr   request     ; Send DHCPREQUEST
             jsr   getack      ; Await / get DHCPACK
             jsr   verifyack   ; Verify DHCPACK
+            jsr   prtdhcp
 
 ; Now proceed as normal
             jsr   wizinit   ; Initialize the Wiznet for reals
 
             jsr   udpsetup  ; Set DNS server as S1 UDP destination
 newconn     jsr   getname
+            bcs   ejmp
             jsr   printstart
             jsr   copyname
             jsr   sendquery ; Send the UDP DNS query
@@ -33,7 +35,7 @@ newconn     jsr   getname
             lda   num_replies
             bne   dcont
             jsr   printfail ; Print DNS failure
-            jmp   exit
+ejmp        jmp   exit
 dcont       jsr   parseres  ; Parse DNS result
             jsr   printres  ; Print DNS answer
 
@@ -59,7 +61,7 @@ localin     jsr   kbd       ; Check keyboard
             bra   mainloop
 
 closedconn  ldx   #$00
-closedcon2  lda   connClosed,x 
+closedcon3  lda   connClosed,x 
             beq   closedcon2
             ora   #$80
             jsr   $fded
@@ -618,7 +620,9 @@ dispgo      rts
 ; vidinit
 ; Initialize video / VidHD / etc to desired mode
 ; TODO
-vidinit     jsr   $FC58
+vidinit
+            jsr   $c300
+            jsr   $FC58
             rts
 
 ; slotdet
@@ -640,9 +644,9 @@ slotdet3    lda   slotFound,x
             bra   slotdet3
 slotdet2    lda   cardslot
             clc
-            adc   #$30
+            adc   #$b0
             jsr   $fded
-            lda   #$0D
+            lda   #$8D
             jsr   $fded
             rts
 
