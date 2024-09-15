@@ -210,12 +210,14 @@ wizinit     pha
             pla
             rts
 
-initfail    sec
-            brk  $00                  ; YOU LOSE
-            ply
-            plx
-            pla
-            rts
+initfail    ldx  #$00
+initfail3   lda  initUnable,x
+            beq  initfail4
+            ora  #$80
+            jsr  $fded
+            inx
+            bra  initfail3
+initfail4   jmp  exit
 
 ; set up uthernet II MAC and IP params
 ; then issue TCP CONNECT command to Wiznet
@@ -293,7 +295,14 @@ initpass    lda   #$04
             plx
             pla
             rts
-sockfail    brk   $01                 ; YOU LOSE (SOCK_CLOSED)
+sockfail    ldx   #$00
+sockfail3   lda   sockUnable,x
+            beq   sockfail2
+            ora   #$80
+            jsr   $fded
+            inx
+            bra   sockfail3
+sockfail2   jmp   exit
 
 ; 'ring' function (check for ring)
 ; all regs preserved
@@ -325,12 +334,29 @@ closed      lda   #00
             rts
 
 ; exit / stop everything
-; restore original stack ptr and then rts
-; this lets us just jump here no matter where we are
-; or how deep the call stack is
+; print a message, accept a keypress, quit to P8
 exit        jsr   discon              ; put uther ii in a nice state
-            brk   $00                 ; TODO
-            rts                       ; hasta la vista
+            lda   #$8d
+            jsr   $fded
+            jsr   $fded
+exit4       lda   presstoquit,x
+            beq   exit2
+            ora   #$80
+            jsr   $fded
+            inx
+            bra   exit4
+exit2       sta   $c010
+exit3       lda   $c000
+            bpl   exit3
+            jsr   $bf00
+            db    $65
+            dw    qparms
+
+qparms      db    4
+            db    0
+            dw    0
+            db    0
+            dw    0
 
 ; disconnect / close tcp socket
 ; all regs preserved
@@ -592,12 +618,29 @@ slotdet     ldx   #$FF
             jsr   wizinit2
             bcs   ]next
             sta   cardslot
-            jsr   $fdda
+            ldx   #$00
+slotdet3    lda   slotFound,x
+            beq   slotdet2
+            ora   #$80
+            jsr   $fded
+            inx
+            bra   slotdet3
+slotdet2    lda   cardslot
+            clc
+            adc   #$30
+            jsr   $fded
             lda   #$0D
             jsr   $fded
             rts
 
-notfound    brk   $00
+notfound    ldx   #$00
+notfound3   lda   slotUnable,x
+            beq   notfound2
+            ora   #$80
+            jsr   $fded
+            inx
+            bra   notfound3
+notfound2   jmp   exit
 
 ; Order to attempt detection
 slots       db    01,07,02,04,03,05,06,00
@@ -647,4 +690,189 @@ initfail2   sec
             pla
             rts
 
+prtdhcp     ldx   #$00
+prtdhcp3    lda   dhcpComplete,x
+            beq   prtdhcp5
+            ora   #$80
+            jsr   $fded
+            inx
+            bra   prtdhcp3
+
+            ldx   #$00
+prtdhcp5    lda   myIPstr,x
+            beq   prtdhcp4
+            ora   #$80
+            jsr   $fded
+            inx
+            bra   prtdhcp5
+
+prtdhcp4    lda   my_ip
+            jsr   hexdec
+            lda   bcd_out+1
+            jsr   $fdda
+            lda   bcd_out
+            jsr   $fdda
+            lda   #"."
+            jsr   $fded
+            lda   my_ip+1
+            jsr   hexdec
+            lda   bcd_out+1
+            jsr   $fdda
+            lda   bcd_out
+            jsr   $fdda
+            lda   #"."
+            jsr   $fded
+            lda   my_ip+2
+            jsr   hexdec
+            lda   bcd_out+1
+            jsr   $fdda
+            lda   bcd_out
+            jsr   $fdda
+            lda   #"."
+            jsr   $fded
+            lda   my_ip+3
+            jsr   hexdec
+            lda   bcd_out+1
+            jsr   $fdda
+            lda   bcd_out
+            jsr   $fdda
+            lda   #$8d
+            jsr   $fded
+
+            ldx   #$00
+prtdhcp6    lda   myMaskstr,x
+            beq   prtdhcp7
+            ora   #$80
+            jsr   $fded
+            inx
+            bra   prtdhcp6
+
+prtdhcp7    lda   my_mask
+            jsr   hexdec
+            lda   bcd_out+1
+            jsr   $fdda
+            lda   bcd_out
+            jsr   $fdda
+            lda   #"."
+            jsr   $fded
+            lda   my_mask+1
+            jsr   hexdec
+            lda   bcd_out+1
+            jsr   $fdda
+            lda   bcd_out
+            jsr   $fdda
+            lda   #"."
+            jsr   $fded
+            lda   my_mask+2
+            jsr   hexdec
+            lda   bcd_out+1
+            jsr   $fdda
+            lda   bcd_out
+            jsr   $fdda
+            lda   #"."
+            jsr   $fded
+            lda   my_mask+3
+            jsr   hexdec
+            lda   bcd_out+1
+            jsr   $fdda
+            lda   bcd_out
+            jsr   $fdda
+            lda   #$8d
+            jsr   $fded
+
+            ldx   #$00
+prtdhcp8    lda   myGWstr,x
+            beq   prtdhcp9
+            ora   #$80
+            jsr   $fded
+            inx
+            bra   prtdhcp8
+
+prtdhcp9    lda   my_gw
+            jsr   hexdec
+            lda   bcd_out+1
+            jsr   $fdda
+            lda   bcd_out
+            jsr   $fdda
+            lda   #"."
+            jsr   $fded
+            lda   my_gw+1
+            jsr   hexdec
+            lda   bcd_out+1
+            jsr   $fdda
+            lda   bcd_out
+            jsr   $fdda
+            lda   #"."
+            jsr   $fded
+            lda   my_gw+2
+            jsr   hexdec
+            lda   bcd_out+1
+            jsr   $fdda
+            lda   bcd_out
+            jsr   $fdda
+            lda   #"."
+            jsr   $fded
+            lda   my_gw+3
+            jsr   hexdec
+            lda   bcd_out+1
+            jsr   $fdda
+            lda   bcd_out
+            jsr   $fdda
+            lda   #$8d
+            jsr   $fded
+
+
+            ldx   #$00
+prtdhcp10   lda   myDNSstr,x
+            beq   prtdhcp11
+            ora   #$80
+            jsr   $fded
+            inx
+            bra   prtdhcp10
+
+prtdhcp11   lda   dns_ip
+            jsr   hexdec
+            lda   bcd_out+1
+            jsr   $fdda
+            lda   bcd_out
+            jsr   $fdda
+            lda   #"."
+            jsr   $fded
+            lda   dns_ip+1
+            jsr   hexdec
+            lda   bcd_out+1
+            jsr   $fdda
+            lda   bcd_out
+            jsr   $fdda
+            lda   #"."
+            jsr   $fded
+            lda   dns_ip+2
+            jsr   hexdec
+            lda   bcd_out+1
+            jsr   $fdda
+            lda   bcd_out
+            jsr   $fdda
+            lda   #"."
+            jsr   $fded
+            lda   dns_ip+3
+            jsr   hexdec
+            lda   bcd_out+1
+            jsr   $fdda
+            lda   bcd_out
+            jsr   $fdda
+            lda   #$8d
+            jsr   $fded
+
+            rts
+
+presstoquit str   'Press any key to return to ProDOS 8',00
+initUnable  str   'Unable to initialize W5100 chip',00
+sockUnable  str   'Unable to setup TCP socket',00
+slotUnable  str   'Unable to find Uthernet II in any slot',00
+slotFound   str   'Found Uthernet II in slot ',00
+dhcpComplete str  'DHCP configuration complete.',$8d,00
+myIPstr     str   'My IP Address: ',00
+myDNSstr    str   'My DNS Server: ',00
+myGWstr     str   'My Default Gateway: ',00
+myMaskstr   str   'My Network Mask: ',00
             use   dhcp.s
