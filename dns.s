@@ -548,7 +548,9 @@ pf4         lda   keyin,x
             jsr   $FDED
             inx
             bra   pf4
-pf3         rts
+pf3         lda   #$8d
+            jsr   $fded
+            rts
 
 ; strings 'n' such
 dnsfail     asc   'DNS failure for name: ',00

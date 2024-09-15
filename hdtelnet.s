@@ -35,7 +35,7 @@ newconn     jsr   getname
             lda   num_replies
             bne   dcont
             jsr   printfail ; Print DNS failure
-ejmp        jmp   exit
+            bra   newconn
 dcont       jsr   parseres  ; Parse DNS result
             jsr   printres  ; Print DNS answer
 
@@ -68,6 +68,8 @@ closedcon3  lda   connClosed,x
             inx
             bra   closedcon3
 closedcon2  bra   newconn
+
+ejmp        jmp   exit
 
 cardslot    dfb   1 ; card slot
 
@@ -350,6 +352,7 @@ exit        jsr   discon              ; put uther ii in a nice state
             lda   #$8d
             jsr   $fded
             jsr   $fded
+            ldx   #$00
 exit4       lda   presstoquit,x
             beq   exit2
             ora   #$80
@@ -709,13 +712,13 @@ initfail2   sec
 
 prtdhcp     ldx   #$00
 prtdhcp3    lda   dhcpComplete,x
-            beq   prtdhcp5
+            beq   prtdhcp2
             ora   #$80
             jsr   $fded
             inx
             bra   prtdhcp3
 
-            ldx   #$00
+prtdhcp2    ldx   #$00
 prtdhcp5    lda   myIPstr,x
             beq   prtdhcp4
             ora   #$80
@@ -882,16 +885,16 @@ prtdhcp11   lda   dns_ip
 
             rts
 
-presstoquit str   'Press any key to return to ProDOS 8',00
-initUnable  str   'Unable to initialize W5100 chip',00
-sockUnable  str   'Unable to setup TCP socket',00
-slotUnable  str   'Unable to find Uthernet II in any slot',00
-slotFound   str   'Found Uthernet II in slot ',00
-dhcpComplete str  'DHCP configuration complete.',$8d,00
-myIPstr     str   'My IP Address: ',00
-myDNSstr    str   'My DNS Server: ',00
-myGWstr     str   'My Default Gateway: ',00
-myMaskstr   str   'My Network Mask: ',00
-connClosed  str   $8d,$8d,'Connection reset by remote host.',$8d,00
+presstoquit asc   'Press any key to return to ProDOS 8',00
+initUnable  asc   'Unable to initialize W5100 chip',00
+sockUnable  asc   'Unable to setup TCP socket',00
+slotUnable  asc   'Unable to find Uthernet II in any slot',00
+slotFound   asc   'Found Uthernet II in slot ',00
+dhcpComplete asc  'DHCP configuration complete.',$8d,00
+myIPstr     asc   'My IP Address: ',00
+myDNSstr    asc   'My DNS Server: ',00
+myGWstr     asc   'My Default Gateway: ',00
+myMaskstr   asc   'My Network Mask: ',00
+connClosed  asc   $8d,$8d,'Connection reset by remote host.',$8d,00
 
             use   dhcp.s
