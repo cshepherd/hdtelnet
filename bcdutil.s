@@ -8,13 +8,13 @@
 ;        jsr   asc2bcd
 ;        jsr   BCD2BIN
 
-; dotted-decimal testquad string to quadout hex:
+; dotted-decimal keyin string to quadout hex:
 ;        jsr   quad2hex
 
 ; validate that a string contains at least one dot
 hasdot  stz   dots
         ldx   #00
-hdd3    lda   testquad,x
+hdd3    lda   keyin,x
         beq   hdd4
         cmp   #'.'
         beq   hdd1
@@ -33,7 +33,7 @@ hdd4    lda   dots
 ; validate that a string is 3 dots separated by at least 1 number
 isquad  stz   dots
         ldx   #00
-iq3     lda   testquad,x
+iq3     lda   keyin,x
         beq   iqe
         cmp   #'.'
         beq   iq2
@@ -47,7 +47,7 @@ iq2     inc   dots
         cpx   #00           ; first character == dot? fail
         beq   iqfail
         dex
-        lda   testquad,x
+        lda   keyin,x
         cmp   #'.'          ; two dots in a row? fail
         beq   iqfail
         inx
@@ -58,7 +58,7 @@ iqfail  sec
 iqe     cpx   #00           ; last character == first character? fail
         beq   iqfail
         dex
-        lda   testquad,x
+        lda   keyin,x
         cmp   #'.'
         beq   iqfail        ; last character == dot? fail
         lda   dots
@@ -75,7 +75,7 @@ quad2hex lda  #<testasc
         stz   quads         ; quads = quad counter 0-3
         ldx   #00           ; x = offset into dotted quad
 qh4     ldy   #00           ; y = offset into copied ascii
-qh1     lda   testquad,x
+qh1     lda   keyin,x
         beq   qh2
         cmp   #'.'
         beq   qh2           ; process if dot or EOL
@@ -201,8 +201,6 @@ INNER   LDA   BCDW,Y  ;Divide the BCD byte by two
         rts
 
 quads   db    00
-
-testquad asc '198.252.144.2',00
 
 testasc asc  '8080',00
 

@@ -45,7 +45,19 @@ nc2         jsr   copyasc
             sta   dest_port+1
 
 ps00        jsr   printstart
-            jsr   copyname
+            jsr   isquad
+            bcs   ps01
+            jsr   quad2hex
+            lda   quadout
+            sta   dest_ip
+            lda   quadout+1
+            sta   dest_ip+1
+            lda   quadout+2
+            sta   dest_ip+2
+            lda   quadout+3
+            sta   dest_ip+3
+            bra   ps02
+ps01        jsr   copyname
             jsr   sendquery ; Send the UDP DNS query
             jsr   getres    ; Await / get DNS answer
 
@@ -55,7 +67,7 @@ ps00        jsr   printstart
             bra   newconn
 ejmp2       jmp   exit
 dcont       jsr   parseres  ; Parse DNS result
-            jsr   printres  ; Print DNS answer
+ps02        jsr   printres  ; Print DNS answer
 
             jsr   openconn  ; Open outbound S0 TCP connection
 
