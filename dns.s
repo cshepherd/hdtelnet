@@ -477,6 +477,8 @@ gn2         bit   $c000
             and   #$7F
             cmp   #$0D
             beq   gn3
+            cmp   #$03
+            beq   gn4
             sta   keyin,x
             ora   #$80
             cmp   #$FF
@@ -499,6 +501,9 @@ gn3         lda   #00
             sta   keyin,x
             lda   #$8d
             jsr   $FDED
+            clc
+            rts
+gn4         sec
             rts
 
 getport     ldx   #00
@@ -549,7 +554,7 @@ pf3         rts
 dnsfail     asc   'DNS failure for name: ',00
 portnum     asc   'Port Number [23]: ',00
 connto      asc   'Connecting to ',00
-enterhost   asc   'Hostname to Connect to: ',00
+enterhost   asc   'Hostname to Connect to or CTRL-C to exit: ',00
 lookingup   asc   'Looking up: '
 
 ; zero-terminated like it would be if input from keyboard

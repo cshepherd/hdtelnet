@@ -24,7 +24,7 @@
             jsr   wizinit   ; Initialize the Wiznet for reals
 
             jsr   udpsetup  ; Set DNS server as S1 UDP destination
-            jsr   getname
+newconn     jsr   getname
             jsr   printstart
             jsr   copyname
             jsr   sendquery ; Send the UDP DNS query
@@ -57,6 +57,15 @@ localin     jsr   kbd       ; Check keyboard
             bcc   mainloop  ; carry clear = no key
             jsr   out       ; Send new character
             bra   mainloop
+
+closedconn  ldx   #$00
+closedcon2  lda   connClosed,x 
+            beq   closedcon2
+            ora   #$80
+            jsr   $fded
+            inx
+            bra   closedcon3
+closedcon2  bra   newconn
 
 cardslot    dfb   1 ; card slot
 
@@ -412,7 +421,11 @@ netin       phx
             jsr   setaddr
             jsr   getdata
             bne   noclose
-            jmp   exit
+            ply
+            plx
+            pla
+            pla                       ; restore regs but also unwind the jsr from main loop
+            jmp   closedconn
 noclose     ldx   #$28
             jsr   setaddrlo           ; S0_RX_RD (un-translated rx base)
             jsr   getdata
@@ -875,4 +888,6 @@ myIPstr     str   'My IP Address: ',00
 myDNSstr    str   'My DNS Server: ',00
 myGWstr     str   'My Default Gateway: ',00
 myMaskstr   str   'My Network Mask: ',00
+connClosed  str   $8d,$8d,'Connection reset by remote host.',$8d,00
+
             use   dhcp.s
