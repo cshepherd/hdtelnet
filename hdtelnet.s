@@ -10,6 +10,17 @@
             jsr   vidinit   ; Initialize VidHD output mode
             jsr   slotdet   ; Detect slot
 
+; DHCP flow to populate IP params
+            jsr   wizinit     ; Initialize the Wiznet
+            jsr   dhcpsetup   ; Set up UDP socket
+            jsr   discover    ; Send DHCPDISCOVER
+            jsr   getoffer    ; Await / get DHCPOFFER
+            jsr   parseoffer  ; Parse DHCPOFFER
+            jsr   request     ; Send DHCPREQUEST
+            jsr   getack      ; Await / get DHCPACK
+            jsr   verifyack   ; Verify DHCPACK
+
+; Now proceed as normal
             jsr   wizinit   ; Initialize the Wiznet for reals
 
             jsr   udpsetup  ; Set DNS server as S1 UDP destination
@@ -51,14 +62,14 @@ cardslot    dfb   1 ; card slot
 
 *-------------------------------
 * Uthernet II configuration
-my_gw       db    192,168,64,1
-my_mask     db    255,255,255,0
+my_gw       db    0,0,0,0
+my_mask     db    0,0,0,0
 mac_addr    db    $08,00,$20,$C0,$10,$20
-my_ip       db    192,168,64,254
+my_ip       db    0,0,0,0
 port_num    ddb   6502
 *-------------------------------
 * destination
-dest_ip     db    192,168,64,1
+dest_ip     db    0,0,0,0
 dest_port   ddb   23
 *-------------------------------
 * internal variables
@@ -568,8 +579,7 @@ dispgo      rts
 ; vidinit
 ; Initialize video / VidHD / etc to desired mode
 ; TODO
-vidinit     jsr   $c300
-            jsr   $FC58
+vidinit     jsr   $FC58
             rts
 
 ; slotdet
@@ -636,3 +646,5 @@ initfail2   sec
             plx
             pla
             rts
+
+            use   dhcp.s

@@ -1,40 +1,11 @@
 *-------------------------------
-* DHCP test
-* 9/7/2024 ballmerpeak
+* DHCP module
+* 9/15/2024 ballmerpeak
 *-------------------------------
 
-            org   $2000
-
-            jsr   wizinit   ; Initialize the Wiznet
-            jsr   udpsetup  ; Set up UDP socket
-            jsr   discover  ; Send DHCPDISCOVER
-            jsr   getoffer  ; Await / get DHCPOFFER
-            jsr   parseoffer  ; Parse DHCPOFFER
-            jsr   request   ; Send DHCPREQUEST
-            jsr   getack    ; Await / get DHCPACK
-            jsr   verifyack ; Verify DHCPACK
-            rts
-
 *-------------------------------
-* Uthernet II configuration
-my_gw       db    255,255,255,255
-my_mask     db    255,255,255,255
-mac_addr    db    $08,00,$20,$C0,$10,$20
-my_ip       db    0,0,0,0
+* DHCP params
 server_addr db    0,0,0,0
-dns_ip      db    0,0,0,0
-
-*-------------------------------
-* internal variables
-active      db    0
-rx_rd       db    00,00
-rx_rd_orig  db    00,00
-rx_rcvd     db    00,00
-tx_wr       db    00,00
-tx_ptr      db    00,00
-tx_free     db    00,00
-stackptr    db    0
-cardslot    db    1
 
 *-------------------------------
 * DHCPDISCOVER datagram
@@ -68,82 +39,10 @@ discid      db    $08,00,$20,$C0,$10,$20
 dhcpdiscoverpage2 = dhcpdiscover+255
 discover_length = * - dhcpdiscoverpage2
 
-; set addr
-; a = reg no hi
-; x = reg no lo
-setaddr
-]cn1        sta   $c000       ; ]cn1+1 = card_base + 1
-; set addr lo only
-; x = reg no lo
-setaddrlo
-]cn2        stx   $c000       ; ]cn2+1 = card_base + 2
-            rts
-
-; set global reg
-; a = value
-setglobalreg
-]cn3        sta   $c000       ; ]cn3+1 = card_base + 0
-            rts
-
-; read global reg
-; a = value
-getglobalreg
-]cn6        lda   $c000       ; ]cn6+1 = card_base + 0
-            rts
-
-; send data
-; a = value
-setdata
-]cn4        sta   $c000       ; ]cn4+1 = card_base + 3
-            rts
-
-; read data
-; a = value
-getdata
-]cn5        lda   $c000       ; ]cn5+1 = card_base + 3
-            rts
-
-; Just reset the Uthernet II
-; all regs preserved
-wizinit     pha
-            phx
-            phy
-            lda   cardslot
-            asl
-            asl
-            asl
-            asl
-            clc
-            adc   #$84
-            sta   ]cn3+1
-            sta   ]cn6+1
-            inc
-            sta   ]cn1+1
-            inc
-            sta   ]cn2+1
-            inc
-            sta   ]cn4+1
-            sta   ]cn5+1
-
-            lda   #$80                ; $80 = reset
-            jsr   setglobalreg
-
-            jsr   getglobalreg
-            bne   initfail
-
-            clc
-            ply
-            plx
-            pla
-            rts
-
-initfail    sec
-            brk  $00                  ; YOU LOSE
-
 ; set up uthernet II MAC and IP params
 ; then send DNS question via wiznet
 ; all regs preserved
-udpsetup    pha
+dhcpsetup   pha
             phx
             phy
             lda   #$03                ; Indirect Bus IF mode, Address Auto-Increment
@@ -251,13 +150,13 @@ discover    phx
             sta   tx_free             ; store little-endian
 
             lda   tx_free+1
-            bne   havebyte3
+            bne   havebyte5
             lda   tx_free
-            bne   havebyte3
+            bne   havebyte5
             bra   ]txwt               ; wait if no tx buffer byte free
                                       ; (i srsly doubt this ever happens)
 
-havebyte3   lda   tx_wr+1
+havebyte5   lda   tx_wr+1
             ldx   tx_wr               ; note little-endian load
             jsr   setaddr             ; start at this base address
 
@@ -297,12 +196,12 @@ havebyte3   lda   tx_wr+1
             lda   #$21
             jsr   setdata             ; SEND_MAC command
 
-wt          nop
+wt9         nop
             lda   #$04
             ldx   #$01
             jsr   setaddr
             jsr   getdata
-            bne   wt                  ; wait for send completion
+            bne   wt9                 ; wait for send completion
 
             pla
             ply
