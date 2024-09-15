@@ -49,6 +49,7 @@ yiaddr      db    $00,$00,$00,$00        ; Your IP Address
 siaddr      db    $00,$00,$00,$00        ; Server IP Address
 giaddr      db    $00,$00,$00,$00        ; Gateway IP Address
 chaddr      db    $08,00,$20,$C0,$10,$20 ; Client Hardware Address
+            ds    10                     ; chaddr padding
 sname       ds    64                     ; Server Name (optional)
 bootfile    ds    128                    ; BOOTP legacy, 'boot file'
 magic       db    $63,$82,$53,$63        ; Magic Cookie
@@ -57,11 +58,12 @@ magic       db    $63,$82,$53,$63        ; Magic Cookie
             db    61,07,01               ; Client ID: 01 + ether address
 discid      db    $08,00,$20,$C0,$10,$20
             db    12,04                  ; Hostname + strlen(hostname)
-            asc   'gs'
+            asc   'iigs'
             db    55,06                  ; Params (6 of them)
             db    01,03,06,15,58,59      ; Params: subnetMask, routers, dns, domainName, dhcpT1value, dhcpT2value
             db    255                    ; endParam
-discover_length = * - dhcpdiscover
+dhcpdiscoverpage2 = dhcpdiscover+255
+discover_length = * - dhcpdiscoverpage2
 
 ; set addr
 ; a = reg no hi
@@ -260,15 +262,22 @@ havebyte3   lda   tx_wr+1
 ]slp        lda   dhcpdiscover,x
             jsr   setdata             ; send the byte
             inx
-            cpx   #discover_length
+            cpx   #$FF
             bne   ]slp
+
+            ldx   #00
+]slp2       lda   dhcpdiscover+255,x  ; second loop because discover is more than 255
+            jsr   setdata
+            inx
+            cpx   #discover_length
+            bne   ]slp2
 
 notcr       lda   tx_ptr
             clc
             adc   #discover_length
             sta   tx_ptr
             lda   tx_ptr+1
-            adc   #00
+            adc   #01
             sta   tx_ptr+1
 
             lda   #$04
