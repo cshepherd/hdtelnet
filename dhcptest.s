@@ -8,7 +8,8 @@
             jsr   wizinit   ; Initialize the Wiznet
             jsr   udpsetup  ; Set up UDP socket
             jsr   discover  ; Send DHCPDISCOVER
-;            jsr   getoffer  ; Await / get DHCPOFFER
+            jsr   getoffer  ; Await / get DHCPOFFER
+            jsr   parseoffer  ; Parse DHCPOFFER
 ;            jsr   request   ; Send DHCPREQUEST
 ;            jsr   getack    ; Await / get DHCPACK
 
@@ -20,6 +21,8 @@ my_gw       db    255,255,255,255
 my_mask     db    255,255,255,255
 mac_addr    db    $08,00,$20,$C0,$10,$20
 my_ip       db    0,0,0,0
+server_addr db    0,0,0,0
+dns_ip      db    0,0,0,0
 
 *-------------------------------
 * internal variables
@@ -299,10 +302,222 @@ wt          nop
             ldx   #$01
             jsr   setaddr
             jsr   getdata
-            bne   wt          ; wait for send completion
+            bne   wt                  ; wait for send completion
 
             pla
             ply
             plx
             clc
+            rts
+
+dhcpoffer   ds    400                 ; dhcpoffer will be about 342 bytes
+offerdata   =     dhcpoffer+8         ; skip src ip, src port, length
+magiccookie =     offerdata+236
+offeropts   =     magiccookie+4
+
+; parseoffer
+; parse DHCPOFFER
+nomoreopts  clc
+            rts
+
+parseoffer  lda   magiccookie
+            cmp   #$63
+            bne   parsefail
+            lda   magiccookie+1
+            cmp   #$82
+            bne   parsefail
+            lda   magiccookie+2
+            cmp   #$53
+            bne   parsefail
+            lda   magiccookie+3
+            cmp   #$63
+            bne   parsefail
+
+            lda   offerdata+16
+            sta   my_ip
+            lda   offerdata+17
+            sta   my_ip+1
+            lda   offerdata+18
+            sta   my_ip+2
+            lda   offerdata+19
+            sta   my_ip+3
+
+            lda   offerdata+20
+            sta   server_addr
+            lda   offerdata+21
+            sta   server_addr+1
+            lda   offerdata+22
+            sta   server_addr+2
+            lda   offerdata+23
+            sta   server_addr+3
+
+            ldx   #00
+]nextopt    lda   offeropts,x
+            cmp   #$35               ; DHCP Message Type
+            beq   msgtype
+            cmp   #$36               ; DHCP Server Identifier (skip it)
+            beq   generic
+            cmp   #$33               ; DHCP address lease time (skip it)
+            beq   generic
+            cmp   #$01               ; Subnet mask
+            beq   mask
+            cmp   #$03               ; Router
+            beq   router
+            cmp   #$06               ; DNS server
+            beq   dnsserver
+            cmp   #$ff
+            beq   nomoreopts
+            bra   generic            ; unknown option (skip it)
+
+parsefail   sec
+            rts
+
+msgtype     inx
+            lda   offeropts,x
+            cmp   #1                 ; 0102: DHCPOFFER
+            bne   parsefail
+            inx
+            lda   offeropts,x
+            cmp   #2
+            bne   parsefail          ; 0102: DHCPOFFER
+            inx
+            bra   ]nextopt
+
+generic     inx
+            lda   offeropts,x        ; option length
+            sta   $00
+            txa
+            clc
+            adc   $00
+            tax
+            inx
+            bra   ]nextopt
+
+mask        inx
+            inx                       ; skip length
+            lda   offeropts,x
+            sta   my_mask
+            inx
+            lda   offeropts,x
+            sta   my_mask+1
+            inx
+            lda   offeropts,x
+            sta   my_mask+2
+            inx
+            lda   offeropts,x
+            sta   my_mask+3
+            inx
+            bra   ]nextopt
+
+router      inx
+            inx                       ; skip length
+            lda   offeropts,x
+            sta   my_gw
+            inx
+            lda   offeropts,x
+            sta   my_gw+1
+            inx
+            lda   offeropts,x
+            sta   my_gw+2
+            inx
+            lda   offeropts,x
+            sta   my_gw+3
+            inx
+            jmp   ]nextopt
+
+dnsserver   inx
+            inx                       ; skip length
+            lda   offeropts,x
+            sta   dns_ip
+            inx
+            lda   offeropts,x
+            sta   dns_ip+1
+            inx
+            lda   offeropts,x
+            sta   dns_ip+2
+            inx
+            lda   offeropts,x
+            sta   dns_ip+3
+            inx
+            jmp   ]nextopt
+
+; getoffer
+; receive DHCPOFFER
+getoffer    phx
+            phy
+            pha
+            ldx   #$28
+            jsr   setaddrlo           ; S0_RX_RD (un-translated rx base)
+            jsr   getdata
+            sta   rx_rd+1             ; +1 to reverse endianness
+            sta   rx_rd_orig+1
+            jsr   getdata
+            sta   rx_rd
+            sta   rx_rd_orig
+
+            lda   rx_rd               ; AND #$07ff
+            and   #$FF                ; ADD #$6000
+            sta   rx_rd               ; former 65816 zone
+            lda   rx_rd+1             ; (hence little endian)
+            and   #$07
+            clc
+            adc   #$60
+            sta   rx_rd+1
+
+]dnswt      lda   #$04
+            ldx   #$26
+            jsr   setaddr             ; rx size = $0426
+            jsr   getdata
+            sta   rx_rcvd+1
+            jsr   getdata
+            sta   rx_rcvd             ; rx_rcvd now has bytes rcvd
+            bne   have_byteD
+            lda   rx_rcvd+1
+            bne   have_byteD
+
+            bra   ]dnswt
+
+have_byteD  lda   rx_rd+1             ; at least 1 byte available
+            ldx   rx_rd
+            jsr   setaddr             ; start at this base address
+            ldx   #00
+]rdresp     jsr   getdata             ; read the byte from the buffer
+            sta   dhcpoffer,x
+            inx
+            cpx   #255
+            bne   ]rdresp
+
+            ldx   #00
+]rdresp     jsr   getdata             ; read the byte from the buffer
+            sta   dhcpoffer+255,x
+            inx
+            cpx   rx_rcvd
+            bne   ]rdresp
+
+            lda   rx_rd_orig
+            clc
+            adc   rx_rcvd
+            sta   rx_rd_orig          ; this is what we'll write back to rx_rd
+            lda   rx_rd_orig+1
+            adc   rx_rcvd+1
+            sta   rx_rd_orig+1        ; converted 65816 addition
+
+            ldy   #1
+            lda   #$04
+            ldx   #$28                ; add rx_rcvd to rx_rd_orig and store back in $0428
+            jsr   setaddr
+            lda   rx_rd_orig+1
+            jsr   setdata
+            lda   rx_rd_orig
+            jsr   setdata
+
+            ldx   #$01
+            jsr   setaddrlo           ; S0 command register
+            lda   #$40
+            jsr   setdata             ; RECV command
+
+            pla                       ; restore the byte
+            ply                       ; restore saved regs
+            plx
+            sec
             rts
