@@ -897,4 +897,5 @@ myGWstr     asc   'My Default Gateway: ',00
 myMaskstr   asc   'My Network Mask: ',00
 connClosed  asc   $8d,$8d,'Connection reset by remote host.',$8d,00
 
+            use   bcdutil.s
             use   dhcp.s
