@@ -70,7 +70,7 @@ udpsetup    pha
             ldx   #$00
             jsr   setaddr             ; $0500 = S1 mode port
             lda   #$02
-            jsr   setdata             ; $02 = TCP
+            jsr   setdata             ; $02 = UDP
 
             lda   #$05
             ldx   #$01

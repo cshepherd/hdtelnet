@@ -8,21 +8,18 @@
             jsr   wizinit   ; Initialize the Wiznet
             jsr   udpsetup  ; Set up UDP socket
             jsr   discover  ; Send DHCPDISCOVER
-            jsr   getoffer  ; Await / get DHCPOFFER
-            jsr   request   ; Send DHCPREQUEST
-            jsr   getack    ; Await / get DHCPACK
+;            jsr   getoffer  ; Await / get DHCPOFFER
+;            jsr   request   ; Send DHCPREQUEST
+;            jsr   getack    ; Await / get DHCPACK
 
             rts
 
 *-------------------------------
 * Uthernet II configuration
-my_gw       db    0,0,0,0
-my_mask     db    255,255,255,0
+my_gw       db    255,255,255,255
+my_mask     db    255,255,255,255
 mac_addr    db    $08,00,$20,$C0,$10,$20
 my_ip       db    0,0,0,0
-*-------------------------------
-* DNS server
-dns_ip      db    0,0,0,0
 
 *-------------------------------
 * internal variables
@@ -59,10 +56,12 @@ magic       db    $63,$82,$53,$63        ; Magic Cookie
             db    53,01,01               ; Message Type: DHCPDISCOVER
             db    61,07,01               ; Client ID: 01 + ether address
 discid      db    $08,00,$20,$C0,$10,$20
-            db    12,09                  ; Hostname + strlen(hostname)+3
-            asc   'wiznet'
-maclast3    db    $c0,$10,$20            ; last 3 bytes of mac addr
-            db    55,06,01,03,06,15,58,59,255 ; Params: subnetMask, routers, dns, domainName, dhcpT1value, dhcpT2value
+            db    12,04                  ; Hostname + strlen(hostname)
+            asc   'gs'
+            db    55,06                  ; Params (6 of them)
+            db    01,03,06,15,58,59      ; Params: subnetMask, routers, dns, domainName, dhcpT1value, dhcpT2value
+            db    255                    ; endParam
+discover_length = * - dhcpdiscover
 
 ; set addr
 ; a = reg no hi
@@ -166,17 +165,17 @@ udpsetup    pha
 
             lda   #$04
             ldx   #$04
-            jsr   setaddr             ; 0404 = S0 source port
-            lda   port_num
+            jsr   setaddr             ; 0404 = S0 source port (68)
+            lda   #00
             jsr   setdata
-            lda   port_num+1
+            lda   #68
             jsr   setdata
 
             lda   #$04
             ldx   #$00
             jsr   setaddr             ; $0400 = S0 mode port
             lda   #$02
-            jsr   setdata             ; $02 = TCP
+            jsr   setdata             ; $02 = UDP
 
             lda   #$04
             ldx   #$01
@@ -185,103 +184,37 @@ udpsetup    pha
             jsr   setdata             ; send OPEN command
 
             lda   #$04
-            ldx   #$0C
-            jsr   setaddr             ; $040C = S0 dest ip
-            ldx   #0
-]dest       lda   dns_ip,x
+            ldx   #$06
+            jsr   setaddr
+            lda   #$ff
             jsr   setdata
-            inx
-            cpx   #4
-            bne   ]dest               ; dest ip and port now set
+            jsr   setdata
+            jsr   setdata
+            jsr   setdata
+            jsr   setdata
+            jsr   setdata             ; destination MAC: ff:ff:ff:ff:ff:ff (broadcast)
+
+            lda   #$ff
+            jsr   setdata
+            jsr   setdata
+            jsr   setdata
+            jsr   setdata             ; destination address: 255.255.255.255 (broadcast)
 
             lda   #00
             jsr   setdata
-            lda   #53
-            jsr   setdata             ; dest port 53
+            lda   #67
+            jsr   setdata             ; dest port 67
+
+            lda   #$ff
 
             ply
             plx
             pla
             rts
-sockfail    brk   $01                 ; YOU LOSE (SOCK_CLOSED)
 
-; getres
-; receive DNS result
-getres      phx
-            phy
-            pha
-            ldx   #$28
-            jsr   setaddrlo           ; S0_RX_RD (un-translated rx base)
-            jsr   getdata
-            sta   rx_rd+1             ; +1 to reverse endianness
-            sta   rx_rd_orig+1
-            jsr   getdata
-            sta   rx_rd
-            sta   rx_rd_orig
-
-            lda   rx_rd               ; AND #$07ff
-            and   #$FF                ; ADD #$6000
-            sta   rx_rd               ; former 65816 zone
-            lda   rx_rd+1             ; (hence little endian)
-            and   #$07
-            clc
-            adc   #$60
-            sta   rx_rd+1
-
-]dnswt      lda   #$04
-            ldx   #$26
-            jsr   setaddr             ; rx size = $0426
-            jsr   getdata
-            sta   rx_rcvd+1
-            jsr   getdata
-            sta   rx_rcvd             ; rx_rcvd now has bytes rcvd
-            bne   have_byte
-            lda   rx_rcvd+1
-            bne   have_byte
-
-            bra   ]dnswt
-
-have_byte   lda   rx_rd+1             ; at least 1 byte available
-            ldx   rx_rd
-            jsr   setaddr             ; start at this base address
-            ldx   #00
-]rdresp     jsr   getdata             ; read the byte from the buffer
-            sta   dnsresp,x
-            inx
-            cpx   rx_rcvd
-            bne   ]rdresp
-
-            lda   rx_rd_orig
-            clc
-            adc   rx_rcvd
-            sta   rx_rd_orig          ; this is what we'll write back to rx_rd
-            lda   rx_rd_orig+1
-            adc   rx_rcvd+1
-            sta   rx_rd_orig+1        ; converted 65816 addition
-
-            ldy   #1
-            lda   #$04
-            ldx   #$28                ; add rx_rcvd to rx_rd_orig and store back in $0428
-            jsr   setaddr
-            lda   rx_rd_orig+1
-            jsr   setdata
-            lda   rx_rd_orig
-            jsr   setdata
-
-            ldx   #$01
-            jsr   setaddrlo           ; S0 command register
-            lda   #$40
-            jsr   setdata             ; RECV command
-
-have_byte2  pla                       ; restore the byte
-            ply                       ; restore saved regs
-            plx
-            sec
-            rts
-
-; Send DNS query
+; Send DHCPDISCOVER
 ; all regs preserved
-sendquery   phx
+discover    phx
             phy
             pha
             lda   #$04
@@ -324,15 +257,15 @@ havebyte3   lda   tx_wr+1
             jsr   setaddr             ; start at this base address
 
             ldx   #00
-]slp        lda   dns,x
+]slp        lda   dhcpdiscover,x
             jsr   setdata             ; send the byte
             inx
-            cpx   #dns_length
+            cpx   #discover_length
             bne   ]slp
 
 notcr       lda   tx_ptr
             clc
-            adc   #dns_length
+            adc   #discover_length
             sta   tx_ptr
             lda   tx_ptr+1
             adc   #00
@@ -349,8 +282,8 @@ notcr       lda   tx_ptr
             lda   #$04
             ldx   #$01
             jsr   setaddr             ; S0 command register
-            lda   #$20
-            jsr   setdata             ; SEND command
+            lda   #$21
+            jsr   setdata             ; SEND_MAC command
 
 wt          nop
             lda   #$04
@@ -363,8 +296,4 @@ wt          nop
             ply
             plx
             clc
-            rts
-
-; Print output of DNS query
-printres
             rts
