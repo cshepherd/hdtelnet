@@ -10,7 +10,7 @@
             jsr   discover  ; Send DHCPDISCOVER
             jsr   getoffer  ; Await / get DHCPOFFER
             jsr   parseoffer  ; Parse DHCPOFFER
-;            jsr   request   ; Send DHCPREQUEST
+            jsr   request   ; Send DHCPREQUEST
 ;            jsr   getack    ; Await / get DHCPACK
 
             rts
@@ -275,7 +275,7 @@ havebyte3   lda   tx_wr+1
             cpx   #discover_length
             bne   ]slp2
 
-notcr       lda   tx_ptr
+            lda   tx_ptr
             clc
             adc   #discover_length
             sta   tx_ptr
@@ -520,4 +520,150 @@ have_byteD  lda   rx_rd+1             ; at least 1 byte available
             ply                       ; restore saved regs
             plx
             sec
+            rts
+
+*-------------------------------
+* DHCPREQUEST datagram
+* Sent to MAC FF:FF:FF:FF:FF:FF
+dhcprequest = *
+            db    $01                    ; OP 0x01
+            db    $01                    ; HTYPE 0x01
+            db    $06                    ; HLEN 0x06
+            db    $00                    ; HOPS 0x00
+reqxid      db    $39,$03,$F3,$26        ; XID
+            db    $00,$00                ; SECS
+reqflags    db    $00,$00                ; FLAGS
+rciaddr     db    $00,$00,$00,$00        ; Client IP Address
+ryiaddr     db    $00,$00,$00,$00        ; Your IP Address
+rsiaddr     db    $00,$00,$00,$00        ; Server IP Address
+rgiaddr     db    $00,$00,$00,$00        ; Gateway IP Address
+rchaddr     db    $08,00,$20,$C0,$10,$20 ; Client Hardware Address
+            ds    10                     ; chaddr padding
+rsname      ds    64                     ; Server Name (optional)
+rbootfile   ds    128                    ; BOOTP legacy, 'boot file'
+rmagic      db    $63,$82,$53,$63        ; Magic Cookie
+* options
+            db    $35,01,03              ; Message Type: DHCPREQUEST
+            db    $32,$04
+rreqip      db    00,00,00,00            ; requested client ip
+            db    $36,$04
+rserverip   db    00,00,00,00            ; requested server ip
+            db    $ff                    ; end of request
+dhcprequestpage2 = dhcprequest+255
+request_length = * - dhcprequestpage2    ; like a full page +1 or 2, that's life
+
+; Send DHCPREQUEST
+; all regs preserved
+request     phx
+            phy
+            pha
+
+            lda   server_addr
+            sta   rserverip
+            sta   rsiaddr
+            lda   server_addr+1
+            sta   rserverip+1
+            sta   rsiaddr+1
+            lda   server_addr+2
+            sta   rserverip+2
+            sta   rsiaddr+2
+            lda   server_addr+3
+            sta   rserverip+3
+            sta   rsiaddr+3
+
+            lda   my_ip
+            sta   rreqip
+            lda   my_ip+1
+            sta   rreqip+1
+            lda   my_ip+2
+            sta   rreqip+2
+            lda   my_ip+3
+            sta   rreqip+3
+
+            lda   #$04
+            ldx   #$24
+            jsr   setaddr             ; S0_TX_WR
+            jsr   getdata
+            sta   tx_wr+1             ; +1 to reverse endianness
+            sta   tx_ptr+1
+            jsr   getdata
+            sta   tx_wr               ; tx_wr is the translated 5100 address we write to
+            sta   tx_ptr              ; tx_ptr will be the exact original value
+                                      ; + 4KB, 8KB etc without translation
+
+            lda   tx_wr               ; AND #$07ff
+            and   #$FF                ; ADD #$4000
+            sta   tx_wr               ; former 65816 zone
+            lda   tx_wr+1             ; (hence little endian)
+            and   #$07
+            clc
+            adc   #$40
+            sta   tx_wr+1
+
+]txwt       lda   #$04
+            ldx   #$20
+            jsr   setaddr             ; tx free space = $0420 blaze it
+            jsr   getdata
+            sta   tx_free+1
+            jsr   getdata
+            sta   tx_free             ; store little-endian
+
+            lda   tx_free+1
+            bne   havebyte4
+            lda   tx_free
+            bne   havebyte4
+            bra   ]txwt               ; wait if no tx buffer byte free
+                                      ; (i srsly doubt this ever happens)
+
+havebyte4   lda   tx_wr+1
+            ldx   tx_wr               ; note little-endian load
+            jsr   setaddr             ; start at this base address
+
+            ldx   #00
+]slp        lda   dhcprequest,x
+            jsr   setdata             ; send the byte
+            inx
+            cpx   #$FF
+            bne   ]slp
+
+            ldx   #00
+]slp2       lda   dhcprequest+255,x  ; second loop because request is (slightly) more than 255
+            jsr   setdata
+            inx
+            cpx   #request_length
+            bne   ]slp2
+
+            lda   tx_ptr
+            clc
+            adc   #request_length
+            sta   tx_ptr
+            lda   tx_ptr+1
+            adc   #01
+            sta   tx_ptr+1
+
+            lda   #$04
+            ldx   #$24
+            jsr   setaddr
+            lda   tx_ptr+1
+            jsr   setdata
+            lda   tx_ptr
+            jsr   setdata             ; inc S0_TX_WR to add the bytes
+
+            lda   #$04
+            ldx   #$01
+            jsr   setaddr             ; S0 command register
+            lda   #$21
+            jsr   setdata             ; SEND_MAC command
+
+wt2         nop
+            lda   #$04
+            ldx   #$01
+            jsr   setaddr
+            jsr   getdata
+            bne   wt2                 ; wait for send completion
+
+            pla
+            ply
+            plx
+            clc
             rts
