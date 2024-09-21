@@ -13,11 +13,28 @@
 ; DHCP flow to populate IP params
             jsr   wizinit     ; Initialize the Wiznet
             jsr   dhcpsetup   ; Set up UDP socket
+discloop    clc
             jsr   discover    ; Send DHCPDISCOVER
+            ldx   #<sentdisc
+            ldy   #>sentdisc
+            jsr   prtstr
+
             jsr   getoffer    ; Await / get DHCPOFFER
+            bcs   discloop
+            ldx   #<gotoffer
+            ldy   #>gotoffer
+            jsr   prtstr
+
             jsr   parseoffer  ; Parse DHCPOFFER
+
+ackloop     clc
             jsr   request     ; Send DHCPREQUEST
+            ldx   #<sentreq
+            ldy   #>sentreq
+            jsr   prtstr
+
             jsr   getack      ; Await / get DHCPACK
+            bcs   ackloop
             jsr   verifyack   ; Verify DHCPACK
             jsr   prtdhcp
 

@@ -363,7 +363,9 @@ getoffer    phx
             adc   #$60
             sta   rx_rd+1
 
-]dnswt      lda   #$04
+            ldx   #$08
+]dnswt      phx
+            lda   #$04
             ldx   #$26
             jsr   setaddr             ; rx size = $0426
             jsr   getdata
@@ -374,9 +376,19 @@ getoffer    phx
             lda   rx_rcvd+1
             bne   have_byteD
 
-            bra   ]dnswt
+            lda   #$ff
+            jsr   $fca8
+            plx
+            dex
+            bne   ]dnswt
+            pla
+            plx
+            ply
+            sec
+            rts
 
-have_byteD  lda   rx_rd+1             ; at least 1 byte available
+have_byteD  plx
+            lda   rx_rd+1             ; at least 1 byte available
             ldx   rx_rd
             jsr   setaddr             ; start at this base address
             ldx   #00
@@ -418,7 +430,7 @@ have_byteD  lda   rx_rd+1             ; at least 1 byte available
             pla                       ; restore the byte
             ply                       ; restore saved regs
             plx
-            sec
+            clc
             rts
 
 *-------------------------------
@@ -590,7 +602,9 @@ getack      phx
             adc   #$60
             sta   rx_rd+1
 
-]dnswt      lda   #$04
+            ldx   #$08
+]dnswt      phx
+            lda   #$04
             ldx   #$26
             jsr   setaddr             ; rx size = $0426
             jsr   getdata
@@ -600,10 +614,19 @@ getack      phx
             bne   have_byteE
             lda   rx_rcvd+1
             bne   have_byteE
+            lda   #$ff
+            jsr   $fca8
+            plx
+            dex
+            bne   ]dnswt
+            pla
+            plx
+            ply
+            sec
+            rts
 
-            bra   ]dnswt
-
-have_byteE  lda   rx_rd+1             ; at least 1 byte available
+have_byteE  plx
+            lda   rx_rd+1             ; at least 1 byte available
             ldx   rx_rd
             jsr   setaddr             ; start at this base address
             ldx   #00
@@ -645,7 +668,7 @@ have_byteE  lda   rx_rd+1             ; at least 1 byte available
             pla                       ; restore the byte
             ply                       ; restore saved regs
             plx
-            sec
+            clc
             rts
 
 verifyack   lda   magiccookie2
@@ -666,6 +689,10 @@ verifyack   lda   magiccookie2
 
 ackfail     sec
             rts
+
+sentdisc    asc   "Sent DHCPDISCOVER...",$8d,00
+gotoffer    asc   "Received DHCPOFFER...",$8d,$00
+sentreq     asc   "Sent DHCPREQUEST...",$8d,00
 
 dhcpack     ds    400                 ; dhcpack will be about 342 bytes
 ackdata     =     dhcpack+8           ; skip src ip, src port, length
