@@ -693,6 +693,7 @@ ackfail     sec
 sentdisc    asc   "Sent DHCPDISCOVER...",$8d,00
 gotoffer    asc   "Received DHCPOFFER...",$8d,$00
 sentreq     asc   "Sent DHCPREQUEST...",$8d,00
+dhcpto      asc   "DHCP failed: Timeout.",$8d,00
 
 dhcpack     ds    400                 ; dhcpack will be about 342 bytes
 ackdata     =     dhcpack+8           ; skip src ip, src port, length
