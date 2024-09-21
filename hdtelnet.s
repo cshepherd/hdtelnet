@@ -90,13 +90,9 @@ localin     jsr   kbd       ; Check keyboard
             jsr   out       ; Send new character
             bra   mainloop
 newconn2    jmp   newconn
-closedconn  ldx   #$00
-closedcon3  lda   connClosed,x 
-            beq   closedcon2
-            ora   #$80
-            jsr   $fded
-            inx
-            bra   closedcon3
+closedconn  ldx   #<connClosed
+            ldy   #>connClosed
+            jsr   prtstr
 closedcon2  bra   newconn2
 
 ejmp        jmp   exit
@@ -253,14 +249,10 @@ wizinit     pha
             pla
             rts
 
-initfail    ldx  #$00
-initfail3   lda  initUnable,x
-            beq  initfail4
-            ora  #$80
-            jsr  $fded
-            inx
-            bra  initfail3
-initfail4   jmp  exit
+initfail    ldx  #<initUnable
+            ldy  #>initUnable
+            jsr  prtstr
+            jmp  exit
 
 ; set up uthernet II MAC and IP params
 ; then issue TCP CONNECT command to Wiznet
@@ -338,14 +330,10 @@ initpass    lda   #$04
             plx
             pla
             rts
-sockfail    ldx   #$00
-sockfail3   lda   sockUnable,x
-            beq   sockfail2
-            ora   #$80
-            jsr   $fded
-            inx
-            bra   sockfail3
-sockfail2   jmp   exit
+sockfail    ldx   #<sockUnable
+            ldy   #>sockUnable
+            jsr   prtstr
+            jmp   exit
 
 ; 'ring' function (check for ring)
 ; all regs preserved
@@ -382,14 +370,10 @@ exit        jsr   discon              ; put uther ii in a nice state
             lda   #$8d
             jsr   $fded
             jsr   $fded
-            ldx   #$00
-exit4       lda   presstoquit,x
-            beq   exit2
-            ora   #$80
-            jsr   $fded
-            inx
-            bra   exit4
-exit2       sta   $c010
+            ldx   #<presstoquit
+            ldy   #>presstoquit
+            jsr   prtstr
+            sta   $c010
 exit3       lda   $c000
             bpl   exit3
             jsr   $bf00
@@ -649,15 +633,6 @@ dispchar
             jsr   $fded
 dispgo      rts
 
-
-; vidinit
-; Initialize video / VidHD / etc to desired mode
-; TODO
-vidinit
-            jsr   $c300
-            jsr   $FC58
-            rts
-
 ; slotdet
 ; attempt a variant of wizinit for different slots
 ; try not to format any disks teehee
@@ -668,14 +643,10 @@ slotdet     ldx   #$FF
             jsr   wizinit2
             bcs   ]next
             sta   cardslot
-            ldx   #$00
-slotdet3    lda   slotFound,x
-            beq   slotdet2
-            ora   #$80
-            jsr   $fded
-            inx
-            bra   slotdet3
-slotdet2    lda   cardslot
+            ldx   #<slotFound
+            ldy   #>slotFound
+            jsr   prtstr
+            lda   cardslot
             clc
             adc   #$b0
             jsr   $fded
@@ -683,14 +654,10 @@ slotdet2    lda   cardslot
             jsr   $fded
             rts
 
-notfound    ldx   #$00
-notfound3   lda   slotUnable,x
-            beq   notfound2
-            ora   #$80
-            jsr   $fded
-            inx
-            bra   notfound3
-notfound2   jmp   exit
+notfound    ldx   #<slotUnable
+            ldy   #>slotUnable
+            jsr   prtstr
+            jmp   exit
 
 ; Order to attempt detection
 slots       db    01,07,02,04,03,05,06,00
@@ -740,21 +707,13 @@ initfail2   sec
             pla
             rts
 
-prtdhcp     ldx   #$00
-prtdhcp3    lda   dhcpComplete,x
-            beq   prtdhcp2
-            ora   #$80
-            jsr   $fded
-            inx
-            bra   prtdhcp3
+prtdhcp     ldx   #<dhcpComplete
+            ldy   #>dhcpComplete
+            jsr   prtstr
 
-prtdhcp2    ldx   #$00
-prtdhcp5    lda   myIPstr,x
-            beq   prtdhcp4
-            ora   #$80
-            jsr   $fded
-            inx
-            bra   prtdhcp5
+            ldx   #<myIPstr
+            ldy   #>myIPstr
+            jsr   prtstr
 
 prtdhcp4    lda   my_ip
             jsr   hexdec
@@ -789,15 +748,11 @@ prtdhcp4    lda   my_ip
             lda   #$8d
             jsr   $fded
 
-            ldx   #$00
-prtdhcp6    lda   myMaskstr,x
-            beq   prtdhcp7
-            ora   #$80
-            jsr   $fded
-            inx
-            bra   prtdhcp6
+            ldx   #<myMaskstr
+            ldy   #>myMaskstr
+            jsr   prtstr
 
-prtdhcp7    lda   my_mask
+            lda   my_mask
             jsr   hexdec
             lda   bcd_out+1
             jsr   $fdda
@@ -830,15 +785,11 @@ prtdhcp7    lda   my_mask
             lda   #$8d
             jsr   $fded
 
-            ldx   #$00
-prtdhcp8    lda   myGWstr,x
-            beq   prtdhcp9
-            ora   #$80
-            jsr   $fded
-            inx
-            bra   prtdhcp8
+            ldx   #<myGWstr
+            ldy   #>myGWstr
+            jsr   prtstr
 
-prtdhcp9    lda   my_gw
+            lda   my_gw
             jsr   hexdec
             lda   bcd_out+1
             jsr   $fdda
@@ -872,15 +823,11 @@ prtdhcp9    lda   my_gw
             jsr   $fded
 
 
-            ldx   #$00
-prtdhcp10   lda   myDNSstr,x
-            beq   prtdhcp11
-            ora   #$80
-            jsr   $fded
-            inx
-            bra   prtdhcp10
+            ldx   #<myDNSstr
+            ldy   #>myDNSstr
+            jsr   prtstr
 
-prtdhcp11   lda   dns_ip
+            lda   dns_ip
             jsr   hexdec
             lda   bcd_out+1
             jsr   $fdda
@@ -927,5 +874,6 @@ myGWstr     asc   'My Default Gateway: ',00
 myMaskstr   asc   'My Network Mask: ',00
 connClosed  asc   $8d,$8d,'Connection reset by remote host.',$8d,00
 
+            use   vidhd.s
             use   bcdutil.s
             use   dhcp.s

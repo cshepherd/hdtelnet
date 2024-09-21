@@ -295,14 +295,10 @@ hd3         sty   hex_in
             rts
 
 ; print "Looking up: " followed by domain name
-printstart  ldx   #00
-ps1         lda   lookingup,x
-            beq   ps2
-            ora   #$80
-            jsr   $FDED
-            inx
-            bra   ps1
-ps2         lda   #$8d
+printstart  ldx   #<lookingup
+            ldy   #>lookingup
+            jsr   prtstr
+            lda   #$8d
             jsr   $FDED
             rts
 
@@ -421,14 +417,10 @@ skip2       inx
             bra  pr3          ; parse the next answer
 
 ; Print output of DNS query
-printres    ldx   #00
-prr1        lda   connto,x
-            beq   prr2
-            ora   #$80
-            jsr   $FDED
-            inx
-            bra   prr1
-prr2        lda   dest_ip
+printres    ldx   #<connto
+            ldy   #>connto
+            jsr   prtstr
+            lda   dest_ip
             jsr   hexdec
             lda   bcd_out+1
             jsr   $fdda
@@ -463,14 +455,10 @@ prr2        lda   dest_ip
             jsr   $fded
             rts
 
-getname     ldx   #00
-gn0         lda   enterhost,x
-            beq   gn1
-            ora   #$80
-            jsr   $FDED
-            inx
-            bra   gn0
-gn1         ldx   #00
+getname     ldx   #<enterhost
+            ldy   #>enterhost
+            jsr   prtstr
+            ldx   #00
             lda   $c010
 gn2         bit   $c000
             bpl   gn2
@@ -507,14 +495,10 @@ gn3         lda   #00
 gn4         sec
             rts
 
-getport     ldx   #00
-gp0         lda   portnum,x
-            beq   gp1
-            ora   #$80
-            jsr   $FDED
-            inx
-            bra   gp0
-gp1         ldx   #00
+getport     ldx   #<portnum
+            ldy   #>portnum
+            jsr   prtstr
+            ldx   #00
             lda   $c010
 gp2         bit   $c000
             bpl   gp2
@@ -551,14 +535,10 @@ gp3         lda   #00
             rts
 
 ; print dns failure
-printfail   ldx   #00
-pf1         lda   dnsfail,x
-            beq   pf2
-            ora   #$80
-            jsr   $FDED
-            inx
-            bra   pf1
-pf2         ldx   #00
+printfail   ldx   #<dnsfail
+            ldy   #>dnsfail
+            jsr   prtstr
+            ldx   #00
 pf4         lda   keyin,x
             beq   pf3
             ora   #$80
