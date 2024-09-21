@@ -88,7 +88,7 @@ vloop       lda   vslots,x
             cmp   #$01
             bne   vnc1
             jsr   vgetid4
-            cmp   #$88
+            cmp   #$8b
             bne   vnc1
             clc
             lda   vslots,x
