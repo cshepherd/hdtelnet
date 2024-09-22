@@ -113,6 +113,10 @@ ps02        jsr   printres  ; Print DNS answer
 
             jsr   openconn  ; Open outbound S0 TCP connection
 
+            ldx   #<connEstab
+            ldy   #>connEstab
+            jsr   prtstr
+
 ; Do forever
 ; part I: display chars from net
 mainloop    jsr   netin     ; Get a byte frm network
@@ -129,14 +133,26 @@ maindisp    jsr   dispchar  ; Display received character
 ; part III: send chars from kbd to net
 localin     jsr   kbd       ; Check keyboard
             bcc   mainloop  ; carry clear = no key
-            jsr   out       ; Send new character
+            lda   $C061
+            bne   noOA      ; check for open apple
+            cmp   #$78
+            beq   closeconn
+            cmp   #$58
+            beq   closeconn
+            cmp   #$62
+            beq   brnk
+            cmp   #$42
+            beq   brnk
+            bra   mainloop
+noOA        jsr   out       ; Send new character
             bra   mainloop
 newconn2    jmp   newconn
+closeconn   jsr   discon
 closedconn  ldx   #<connClosed
             ldy   #>connClosed
             jsr   prtstr
 closedcon2  bra   newconn2
-
+brnk        brk   00
 ejmp        jmp   exit
 
 cardslot    dfb   1 ; card slot
@@ -376,35 +392,6 @@ sockfail    ldx   #<sockUnable
             ldy   #>sockUnable
             jsr   prtstr
             jmp   exit
-
-; 'ring' function (check for ring)
-; all regs preserved
-ring        pha
-            phx
-            phy
-            lda   #$04
-            ldx   #$03
-            jsr   setaddr             ; $0403 = socket status register
-            jsr   getdata
-            beq   closed
-            cmp   #$17                ; established?
-            bne   closed
-
-            lda   #01                 ; answer
-            sta   active
-
-            ply
-            plx
-            pla
-            sec                       ; SEC = connected
-            rts
-closed      lda   #00
-            sta   active
-            ply
-            plx
-            pla
-            clc                       ; CLC = not connected
-            rts
 
 ; exit / stop everything
 ; print a message, accept a keypress, quit to P8
@@ -936,6 +923,7 @@ myDNSstr    asc   'My DNS Server: ',00
 myGWstr     asc   'My Default Gateway: ',00
 myMaskstr   asc   'My Network Mask: ',00
 connClosed  asc   $8d,$8d,'Connection reset by remote host.',$8d,00
+connEstab   asc   'Connection established. Apple-X to close.',$8d,00
 
             use   vidhd.s
             use   adb.s
