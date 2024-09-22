@@ -16,6 +16,7 @@ nots3       tax
             sta   cardwrite+2
             sta   readinit+2
             sta   readwrite+2
+            jsr   $c300
             jsr   readinit
             jsr   readwrite
             txa
