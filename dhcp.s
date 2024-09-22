@@ -377,7 +377,7 @@ getoffer    phx
             adc   #$60
             sta   rx_rd+1
 
-            ldx   #$08
+            ldx   #$20
 ]dnswt      phx
             lda   #$04
             ldx   #$26
@@ -616,7 +616,7 @@ getack      phx
             adc   #$60
             sta   rx_rd+1
 
-            ldx   #$08
+            ldx   #$20
 ]dnswt      phx
             lda   #$04
             ldx   #$26
