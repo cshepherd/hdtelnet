@@ -20,6 +20,7 @@ nots3       tax
             sta   vhdget+2
             lda   #00         ; this gets printed when the screen clears
             jsr   $c300
+            sec
             jsr   $fe1f
             bcc   vidhdgs
             ldx   #<plzIIe

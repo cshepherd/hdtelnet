@@ -18,7 +18,7 @@ vidhd_mode  phx
             lda   vmodes,x
             tax
             jsr   adb_sendkey
-vhdget      jsr   $c305      ; TODO change with slot number
+vhdget      jsr   $c305
             rts
 
 vmodes       db    $15,$1c,$12,$13,$14
@@ -48,6 +48,6 @@ adb_sendkey phx
             jsr   adb_wait
             rts
 
-adb_wait    lda   #20
+adb_wait    lda   #10
             jsr   $fca8
             rts
