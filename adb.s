@@ -15,11 +15,13 @@ vidhd_mode  phx
             pla
             asl
             tax
+            lda   vmodes,x
+            tax
             jsr   adb_sendkey
 vhdget      jsr   $c305      ; TODO change with slot number
             rts
 
-modes       db    $15,$1c,$12,$13,$14
+vmodes       db    $15,$1c,$12,$13,$14
 
 adb_sendkey lda   #$11
             sta   $c026
