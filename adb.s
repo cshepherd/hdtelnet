@@ -2,6 +2,8 @@
 * HDTelnet ADB module
 * 9/21/2024 ballmerpeak
 *-------------------------------
+; with very special thanks to 01craft
+; and their pioneering work and generosity
 
 ; set vidhd text mode
 ; 0 - 40x24 (esc-4)
