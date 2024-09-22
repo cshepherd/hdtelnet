@@ -135,13 +135,13 @@ localin     jsr   kbd       ; Check keyboard
             bcc   mainloop  ; carry clear = no key
             lda   $C061
             bne   noOA      ; check for open apple
-            cmp   #$78
+            cmp   #$F8
             beq   closeconn
-            cmp   #$58
+            cmp   #$d8
             beq   closeconn
-            cmp   #$62
+            cmp   #$E2
             beq   brnk
-            cmp   #$42
+            cmp   #$C2
             beq   brnk
             bra   mainloop
 noOA        jsr   out       ; Send new character

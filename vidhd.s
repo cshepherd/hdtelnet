@@ -19,7 +19,20 @@ nots3       tax
             sta   vhdget+2
             lda   #00         ; this gets printed when the screen clears
             jsr   $c300
-            jsr   readinit
+            jsr   $fe1f
+            bcc   vidhdgs
+            ldx   #<plzIIe
+            ldy   #>plzIIe
+            jsr   prtstr
+iielp       jsr   $c305
+            cmp   #$A0
+            bne   iielp
+            bra   iie2
+vidhdgs     inc   is_iigs
+            jsr   adb_benable ; enable ADB keyboard buffering
+            ldx   #2
+            jsr   vidhd_mode
+iie2        jsr   readinit
             jsr   readwrite
             txa
             pha
@@ -128,5 +141,9 @@ prtstr2     lda   str_vfound,x
             bra   prtstr2
 prteof      rts
 
+is_iigs      db   00
+
 str_vfound  asc   "VidHD found in Slot: ",00
 str_nfound  asc   "VidHD not found; Using 80-column firmware.",$8D,00
+plzIIe      asc   "Not an Apple IIGS. Please hit ctrl-6 and adjust your video mode.",8D
+            asc   "When you are finished, press the space bar to continue.",8d,00
