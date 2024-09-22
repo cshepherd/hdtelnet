@@ -12,6 +12,8 @@
 
             jsr   getrand
             sta   mac_addr+5  ; Randomize last octet of MAC address
+            sta   chaddr+5    ; Save for DHCP
+            sta   rchaddr+5   ; Save for DHCP
 
 ; DHCP flow to populate IP params
             jsr   wizinit     ; Initialize the Wiznet
