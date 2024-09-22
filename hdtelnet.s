@@ -10,6 +10,9 @@
             jsr   vidinit   ; Initialize VidHD output mode
             jsr   slotdet   ; Detect slot
 
+            jsr   getrand
+            sta   mac_addr+5  ; Randomize last octet of MAC address
+
 ; DHCP flow to populate IP params
             jsr   wizinit     ; Initialize the Wiznet
             jsr   dhcpsetup   ; Set up UDP socket
@@ -140,7 +143,7 @@ cardslot    dfb   1 ; card slot
 * Uthernet II configuration
 my_gw       db    0,0,0,0
 my_mask     db    0,0,0,0
-mac_addr    db    $08,00,$20,$C0,$10,$20
+mac_addr    db    $08,00,$20,$C0,$10,$21
 my_ip       db    0,0,0,0
 port_num    ddb   6502
 *-------------------------------
@@ -897,6 +900,27 @@ prtdhcp4    lda   my_ip
             lda   #$8d
             jsr   $fded
 
+            rts
+
+; This was good enough for woz
+; use RNDH/RNDL as seed for LFSR
+; result in A
+getrand     lda   $4F
+            bne   gr2
+            cmp   $4E
+            adc   #00
+gr2         and   #$7F
+            sta   $4F
+            ldy   #$11
+gr3         lda   $4F
+            asl
+            clc
+            adc   #$40
+            asl
+            rol   $4E
+            rol   $4F
+            dey
+            bne   gr3
             rts
 
 presstoquit asc   'Press any key to return to ProDOS 8',00

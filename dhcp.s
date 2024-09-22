@@ -121,6 +121,20 @@ dhcpsetup   pha
 discover    phx
             phy
             pha
+
+            jsr   getrand
+            sta   discxid
+            sta   reqxid
+            jsr   getrand
+            sta   discxid+1
+            sta   reqxid+1
+            jsr   getrand
+            sta   discxid+2
+            sta   reqxid+2
+            jsr   getrand
+            sta   discxid+3
+            sta   reqxid+3
+
             lda   #$04
             ldx   #$24
             jsr   setaddr             ; S0_TX_WR

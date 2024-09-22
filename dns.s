@@ -177,6 +177,10 @@ have_byteU  lda   rx_rd+1             ; at least 1 byte available
 sendquery   phx
             phy
             pha
+            jsr   getrand
+            sta   dns_id
+            jsr   getrand
+            sta   dns_id+1
             lda   #$05
             ldx   #$24
             jsr   setaddr             ; S1_TX_WR
