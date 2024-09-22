@@ -23,6 +23,14 @@ vhdget      jsr   $c305      ; TODO change with slot number
 
 vmodes       db    $15,$1c,$12,$13,$14
 
+adb_benable lda   #$04
+            sta   $c026
+            jsr   adb_wait
+            lda   #$10
+            sta   $c026
+            jsr   adb_wait
+            rts
+
 adb_sendkey lda   #$11
             sta   $c026
             jsr   adb_wait
