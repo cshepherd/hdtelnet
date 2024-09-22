@@ -16,6 +16,8 @@ nots3       tax
             sta   cardwrite+2
             sta   readinit+2
             sta   readwrite+2
+            sta   vhdget+2
+            lda   #00         ; this gets printed when the screen clears
             jsr   $c300
             jsr   readinit
             jsr   readwrite
