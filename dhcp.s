@@ -396,8 +396,8 @@ getoffer    phx
             dex
             bne   ]dnswt
             pla
-            plx
             ply
+            plx
             sec
             rts
 

@@ -14,9 +14,7 @@
 vidhd_mode  phx
             ldx   #$35
             jsr   adb_sendkey
-            pla
-            asl
-            tax
+            plx
             lda   vmodes,x
             tax
             jsr   adb_sendkey
@@ -33,21 +31,23 @@ adb_benable lda   #$04
             jsr   adb_wait
             rts
 
-adb_sendkey lda   #$11
+adb_sendkey phx
+            lda   #$11
             sta   $c026
             jsr   adb_wait
-            txa
+            pla
+            pha
             sta   $c026
             jsr   adb_wait
             lda   #$11
             sta   $c026
             jsr   adb_wait
-            txa
+            pla
             ora   $80
             sta   $c026
             jsr   adb_wait
             rts
 
-adb_wait    lda   #10
+adb_wait    lda   #20
             jsr   $fca8
             rts

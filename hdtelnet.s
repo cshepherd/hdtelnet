@@ -102,8 +102,10 @@ ps00        jsr   printstart
 ps01        jsr   copyname
             jsr   sendquery ; Send the UDP DNS query
             jsr   getres    ; Await / get DNS answer
-
-            lda   num_replies
+            bcc   ps03
+            jsr   printfail
+            bra   newconn
+ps03        lda   num_replies
             bne   dcont
             jsr   printfail ; Print DNS failure
             bra   newconn

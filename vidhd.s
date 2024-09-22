@@ -6,6 +6,7 @@
 ; Detect VidHD card slot and set up Pascal vectors
 vidinit     stz   $C00B       ; SETSLOTC3ROM: so we can detect a vidhd in slot 3
             jsr   vdetect
+            pha
             bcs   novhd
             cmp   #3
             beq   nots3
@@ -35,7 +36,6 @@ vidhdgs     inc   is_iigs
 iie2        jsr   readinit
             jsr   readwrite
             txa
-            pha
             ldx   #<str_vfound
             ldy   #>str_vfound
             jsr   prtstr

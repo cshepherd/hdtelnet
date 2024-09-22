@@ -121,7 +121,9 @@ getres      phx
             adc   #$68
             sta   rx_rd+1
 
-]dnswt      lda   #$05
+            ldx   #$20
+]dnswt      phx
+            lda   #$05
             ldx   #$26
             jsr   setaddr             ; rx size = $0526
             jsr   getdata
@@ -132,9 +134,19 @@ getres      phx
             lda   rx_rcvd+1
             bne   have_byteU
 
-            bra   ]dnswt
+            lda   #$ff
+            jsr   $fca8
+            plx
+            dex
+            bne   ]dnswt
+            pla
+            ply
+            plx
+            sec
+            rts
 
-have_byteU  lda   rx_rd+1             ; at least 1 byte available
+have_byteU  plx
+            lda   rx_rd+1             ; at least 1 byte available
             ldx   rx_rd
             jsr   setaddr             ; start at this base address
             ldx   #00
@@ -169,7 +181,7 @@ have_byteU  lda   rx_rd+1             ; at least 1 byte available
             pla                       ; restore the byte
             ply                       ; restore saved regs
             plx
-            sec
+            clc
             rts
 
 ; Send DNS query
