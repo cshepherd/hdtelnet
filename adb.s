@@ -43,7 +43,7 @@ adb_sendkey phx
             sta   $c026
             jsr   adb_wait
             pla
-            ora   $80
+            ora   #$80
             sta   $c026
             jsr   adb_wait
             rts
