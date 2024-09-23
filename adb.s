@@ -48,6 +48,6 @@ adb_sendkey phx
             jsr   adb_wait
             rts
 
-adb_wait    lda   #10
+adb_wait    lda   #50
             jsr   $fca8
             rts
