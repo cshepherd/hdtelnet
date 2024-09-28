@@ -138,6 +138,8 @@ localin     jsr   kbd       ; Check keyboard
             bcc   mainloop  ; carry clear = no key
             pha
             lda   $C061
+            and   #$80
+            cmp   #$00
             beq   noOA      ; check for open apple
             pla
             cmp   #'X'
