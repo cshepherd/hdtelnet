@@ -135,8 +135,10 @@ maindisp    jsr   dispchar  ; Display received character
 ; part III: send chars from kbd to net
 localin     jsr   kbd       ; Check keyboard
             bcc   mainloop  ; carry clear = no key
+            pha
             lda   $C061
-            bne   noOA      ; check for open apple
+            beq   noOA      ; check for open apple
+            pla
             cmp   #'X'
             beq   closeconn
             cmp   #'x'
@@ -146,11 +148,13 @@ localin     jsr   kbd       ; Check keyboard
             cmp   #'b'
             beq   brnk
             bra   mainloop
-noOA        jsr   out       ; Send new character
+noOA        pla
+            jsr   out       ; Send new character
             bra   mainloop
 newconn2    jmp   newconn
 closeconn   jsr   discon
-closedconn  ldx   #<connClosed
+closedconn  jsr   $FC58
+            ldx   #<connClosed
             ldy   #>connClosed
             jsr   prtstr
 closedcon2  bra   newconn2
@@ -180,7 +184,7 @@ tx_wr       db    00,00
 tx_ptr      db    00,00
 tx_free     db    00,00
 stackptr    db    0
-
+xy_first    db    0
             use   dns.s
 
 ; set addr
@@ -228,10 +232,10 @@ rcvd_esc    jsr   netin
             cmp   #'J'
             beq   clears
 esc_done    rts
-;movetop     stz   $24
-;            stz   $25
-;            rts
-movetop
+movetop     stz   $24
+            stz   $25
+            inc   xy_first
+            rts
 clears      jsr   $FC58
             rts
 
@@ -658,11 +662,20 @@ nokey       rts
 
 ; dispchar
 ; Write the character in A to the screen
-; TODO
-dispchar
-            ora   #$80     ; set hi bit
+; The first character after changing x/y should be done through FDED
+; all others should be done with the Pascal write vector
+dispchar    pha
+            lda   xy_first ; first output after setting xy?
+            bne   dcfded
+            stz   xy_first
+            pla
+            ora   #$80      ; set hi bit
+            jmp   cardwrite ; do pascal-vector write
+dcfded      stz   xy_first
+            pla
+            ora   #$80
             jsr   $fded
-dispgo      rts
+            rts
 
 ; slotdet
 ; attempt a variant of wizinit for different slots

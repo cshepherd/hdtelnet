@@ -18,6 +18,8 @@ vidhd_mode  phx
             lda   vmodes,x
             tax
             jsr   adb_sendkey
+            lda   #$3B
+            jsr   adb_sendkey
 vhdget      jsr   $c305
             rts
 
