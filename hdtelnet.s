@@ -58,6 +58,9 @@ ackloop     clc
             ldx   #<dhcpto    ; Timed out trying to get DHCPACK
             ldy   #>dhcpto
             jsr   prtstr
+            ldx   #<danyway
+            ldy   #>danyway
+            jsr   prtstr
 ;            jmp   exit
             jmp   noack
 acknext     plx
