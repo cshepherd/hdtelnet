@@ -58,10 +58,11 @@ ackloop     clc
             ldx   #<dhcpto    ; Timed out trying to get DHCPACK
             ldy   #>dhcpto
             jsr   prtstr
-            jmp   exit
+;            jmp   exit
+            jmp   noack
 acknext     plx
             jsr   verifyack   ; Verify DHCPACK
-            jsr   prtdhcp
+noack       jsr   prtdhcp
 
 ; Now proceed as normal
             jsr   wizinit   ; Initialize the Wiznet for reals
@@ -170,7 +171,7 @@ cardslot    dfb   1 ; card slot
 * Uthernet II configuration
 my_gw       db    0,0,0,0
 my_mask     db    0,0,0,0
-mac_addr    db    $08,00,$20,$C0,$10,$21
+mac_addr    db    $08,00,$20,$C0,$10,$22
 my_ip       db    0,0,0,0
 port_num    ddb   6502
 *-------------------------------
@@ -223,23 +224,6 @@ setdata
 ; a = value
 getdata
 ]cn5        lda   $c000       ; ]cn5+1 = card_base + 3
-            rts
-
-; vt100 character positioning and screen clearing
-rcvd_esc    jsr   netin
-            cmp   #'['
-            bne   esc_done
-            jsr   netin
-            cmp   #'H'
-            beq   movetop
-            cmp   #'J'
-            beq   clears
-esc_done    rts
-movetop     stz   $24
-            stz   $25
-            inc   xy_first
-            rts
-clears      jsr   $FC58
             rts
 
 ; received telnet IAC
@@ -968,6 +952,7 @@ myMaskstr   asc   'My Network Mask: ',00
 connClosed  asc   $8d,$8d,'Connection reset by remote host.',$8d,00
 connEstab   asc   'Connection established. Apple-X to close.',$8d,00
 
+            use   vt100.s
             use   vidhd.s
             use   adb.s
             use   bcdutil.s

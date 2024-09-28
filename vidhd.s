@@ -50,7 +50,8 @@ iie2        jsr   readinit
             rts
 
 ; no vidhd: init 80-column card, set vectors, and set carry
-novhd       stz   $c00A
+novhd       pla
+            stz   $c00A
             jsr   $c300
             jsr   readinit
             jsr   readwrite
