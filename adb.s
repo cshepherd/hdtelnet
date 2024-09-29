@@ -15,15 +15,25 @@ vidhd_mode  phx
             ldx   #$35
             jsr   adb_sendkey
             plx
+            phx
             lda   vmodes,x
             tax
             jsr   adb_sendkey
             lda   #$3B
             jsr   adb_sendkey
 vhdget      jsr   $c305
+            plx
+            lda   hres,x
+            dec
+            sta   max_h
+            lda   vres,X
+            dec
+            sta   max_h
             rts
 
 vmodes       db    $15,$1c,$12,$13,$14
+hres         db    24,24,45,67,135
+vres         db    40,80,80,120,240
 
 adb_benable lda   #$04
             sta   $c026

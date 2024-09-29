@@ -8,6 +8,7 @@ vidinit     stz   $C00B       ; SETSLOTC3ROM: so we can detect a vidhd in slot 3
             jsr   vdetect
             pha
             bcs   novhd
+            sta   vhd_slot
             cmp   #3
             beq   nots3
             stz   $C00A       ; Back to Internal ROM for Slot 3 because the card isn't there
@@ -51,6 +52,9 @@ iie2        jsr   readinit
 
 ; no vidhd: init 80-column card, set vectors, and set carry
 novhd       pla
+            lda   #$ff
+            sta   vhd_slot
+            inc
             stz   $c00A
             jsr   $c300
             jsr   readinit
@@ -143,7 +147,42 @@ prtstr2     lda   str_vfound,x
             bra   prtstr2
 prteof      rts
 
+; determine width and height of the current text screen
+; this works, but shouldn't be necessary, right?
+; keep it here, we may need to verify vhd mode switching
+rezdetect   jsr   $fc58
+            lda   $25
+            sta   min_v
+            lda   $24
+            sta   min_h
+            ldx   #00
+
+]ad1        lda   #$A0
+            jsr   $FDED
+            lda   $25
+            cmp   min_v
+            bne   past1
+            inx
+            bra   ]ad1
+past1       stx   max_h
+
+            ldx   #150
+            jsr   $FC58
+]ad2        lda   #$8D
+            jsr   $FDED
+            dex
+            bne   ]ad2
+            lda   $25
+            sta   max_v
+            rts
+
+min_v       db    0
+max_v       db    0
+min_h       db    0
+max_h       db    0
+
 is_iigs      db   00
+vhd_slot    db    0
 
 str_vfound  asc   "VidHD found in Slot: ",00
 str_nfound  asc   "VidHD not found; Using 80-column firmware.",$8D,00

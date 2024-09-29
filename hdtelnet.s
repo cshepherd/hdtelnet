@@ -154,7 +154,20 @@ localin     jsr   kbd       ; Check keyboard
             beq   brnk
             cmp   #'b'
             beq   brnk
+            cmp   #'1'
+            beq   chmode
+            cmp   #'2'
+            beq   chmode
+            cmp   #'3'
+            beq   chmode
             bra   mainloop
+chmode      lda   vhd_slot
+            cmp   #$ff
+            beq   mainloop
+            sec
+            sbc   #$2f      ; '1' -> 2, '2' -> 3, '3' -> 4
+            tax
+            jsr   vidhd_mode ; set new mode
 noOA        pla
             jsr   out       ; Send new character
             bra   mainloop
