@@ -167,7 +167,9 @@ chmode      lda   vhd_slot
             sec
             sbc   #$2f      ; '1' -> 2, '2' -> 3, '3' -> 4
             tax
+            stz   $c010
             jsr   vidhd_mode ; set new mode
+            bra   mainloop
 noOA        pla
             jsr   out       ; Send new character
             bra   mainloop
