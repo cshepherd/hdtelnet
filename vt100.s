@@ -114,11 +114,11 @@ csi_movto   jsr   decode_args
             lda   arg1_dec
             beq   csim1
             dec
-csim1       sta   $24
+csim1       jsr   write_h
             lda   arg2_dec
             beq   csim2
             dec
-csim2       sta   $25
+csim2       jsr   write_v
             inc   xy_first
             rts
 
@@ -132,11 +132,15 @@ csi_curup2   dec   $25
 cu1         inc   xy_first
             rts
 
-csi_curdown2 inc   $25
+csi_curdown2 lda  $25
+            inc
+            jsr   write_v
             inc   xy_first
             rts
 
-csi_curfwd2  inc   $24
+csi_curfwd2  lda  $24
+            inc
+            jsr   write_h
             inc   xy_first
             rts
 
@@ -198,4 +202,16 @@ da4f        sta   testasc,X
             jsr   BCD2BIN
             lda   BINW
             sta   arg4_dec            
+            rts
+
+write_h     cmp   max_h
+            blt   write_h2
+            lda   max_h
+write_h2    sta   $24
+            rts
+
+write_v     cmp   max_v
+            blt   write_v2
+            lda   max_v
+write_v2    sta   $25
             rts
