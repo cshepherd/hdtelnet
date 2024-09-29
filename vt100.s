@@ -121,7 +121,7 @@ sa1h        pla
 csi_movto   jsr   decode_args
             lda   #$1E
             jsr   cardwrite
-            lda   arg1_dec
+            lda   arg2_dec
             bne   csimv1
             inc
 csimv1      cmp   max_h
@@ -130,7 +130,7 @@ csimv1      cmp   max_h
 csimvh      clc
             adc   #$20
             jsr   cardwrite
-            lda   arg2_dec
+            lda   arg1_dec
             bne   csimh1
             inc
 csimh1      cmp   max_v
@@ -151,22 +151,40 @@ csi_curup2   dec   $25
 cu1         inc   xy_first
             rts
 
-csi_curdown2 lda  $25
-            inc
-            jsr   write_v
-            inc   xy_first
+csi_curdown2 jsr  decode_args
+             ldx  arg1_dec
+            bne   cdn
+            ldx   #1
+cdn         lda   #10
+            phx
+            jsr   cardwrite
+            plx
+            dex
+            bne   cdn
             rts
 
-csi_curfwd2  lda  $24
-            inc
-            jsr   write_h
+csi_curfwd2  jsr  decode_args
+            ldx   arg1_dec
+            bne   cfw
+            ldx   #1
+cfw         lda   #28
+            phx
+            jsr   cardwrite
+            plx
+            dex
+            bne   cfw
             rts
 
-csi_curback2 dec   $24
-            lda   $24
-            bne   cb1
-            stz   $24
-cb1         inc   xy_first
+csi_curback2 jsr  decode_args
+            ldx   arg1_dec
+            bne   cbk
+            ldx   #1
+cbk         lda   #8
+            phx
+            jsr   cardwrite
+            plx
+            dex
+            bne   cbk
             rts
 
 decode_args lda   csi_arg1
@@ -243,5 +261,3 @@ write_v     cmp   max_v
 write_v2    sta   $25
             inc   xy_first
             rts
-
-str_moveto  asc   'moveto: ',00
