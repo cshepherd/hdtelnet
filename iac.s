@@ -18,8 +18,6 @@ rcvd_iac    jsr   netin       ; get next byte
 do_abort    rts               ; bail (shouldn't happen)
 iac_do      jsr   netin
             bcc   do_abort
-;            cmp   #24         ; terminal ID
-;            beq   send_term   ; send ansi terminal ID
             jmp   send_wont   ; send IAC WON'T for this DO
 iac_will    jsr   netin
             bcc   do_abort
@@ -44,6 +42,7 @@ send_dont   pha
             pla               ; saved option number
             jsr   out
             rts
+
 send_term   lda   #$FF        ; IAC
             jsr   out
             lda   #250        ; SB

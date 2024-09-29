@@ -7,8 +7,16 @@
 rcvd_esc    jsr   netin         ; get second character
             cmp   #'['
             beq   rcvd_csi
+            cmp   #'('          ; set character set
+            beq   set_charset
+            cmp   #')'          ; select character set
+            beq   set_charset
 ; take no action on this code
 do_nothing  rts
+
+; set / select charset require us to get/throw away another character
+set_charset jsr   netin
+            rts
 
 csi_arg1    db    00,00,00,00,00 ; 5 bytes for arg1
 csi_arg2    db    00,00,00,00,00 ; 5 bytes for arg2
@@ -119,7 +127,6 @@ csim1       jsr   write_h
             beq   csim2
             dec
 csim2       jsr   write_v
-            inc   xy_first
             rts
 
 csi_erase2   jsr   $FC58
@@ -141,7 +148,6 @@ csi_curdown2 lda  $25
 csi_curfwd2  lda  $24
             inc
             jsr   write_h
-            inc   xy_first
             rts
 
 csi_curback2 dec   $24
@@ -151,7 +157,9 @@ csi_curback2 dec   $24
 cb1         inc   xy_first
             rts
 
-decode_args ldx   #00
+decode_args lda   csi_arg1
+            beq   da1ff
+            ldx   #00
 ]da1        lda   csi_arg1,X
             beq   da1f
             sta   testasc,X
@@ -162,8 +170,10 @@ da1f        sta   testasc,x
             jsr   asc2bcd
             jsr   BCD2BIN
             lda   BINW
-            sta   arg1_dec
+da1ff       sta   arg1_dec
 
+            lda   csi_arg2
+            beq   da2ff
             ldx   #00
 ]da2        lda   csi_arg2,x
             beq   da2f
@@ -175,8 +185,10 @@ da2f        sta   testasc,X
             jsr   asc2bcd
             jsr   BCD2BIN
             lda   BINW
-            sta   arg2_dec
+da2ff       sta   arg2_dec
 
+            lda   csi_arg3
+            beq   da3ff
             ldx   #00
 ]da3        lda   csi_arg3,x
             beq   da3f
@@ -188,8 +200,10 @@ da3f        sta   testasc,X
             jsr   asc2bcd
             jsr   BCD2BIN
             lda   BINW
-            sta   arg3_dec
+da3ff       sta   arg3_dec
 
+            lda   csi_arg4
+            beq   da4ff
             ldx   #00
 ]da4        lda   csi_arg4,X
             beq   da4f
@@ -201,17 +215,19 @@ da4f        sta   testasc,X
             jsr   asc2bcd
             jsr   BCD2BIN
             lda   BINW
-            sta   arg4_dec            
+da4ff       sta   arg4_dec
             rts
 
 write_h     cmp   max_h
             blt   write_h2
             lda   max_h
 write_h2    sta   $24
+            inc   xy_first
             rts
 
 write_v     cmp   max_v
             blt   write_v2
             lda   max_v
 write_v2    sta   $25
+            inc   xy_first
             rts
