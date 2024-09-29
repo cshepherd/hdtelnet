@@ -62,6 +62,10 @@ novhd       pla
             ldx   #<str_nfound
             ldy   #>str_nfound
             jsr   prtstr
+            lda   #80
+            sta   max_h
+            lda   #24
+            sta   max_v
             sec
             rts
 

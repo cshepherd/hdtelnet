@@ -119,14 +119,26 @@ sa1h        pla
             jmp   csi_in
 
 csi_movto   jsr   decode_args
+            lda   #$1E
+            jsr   cardwrite
             lda   arg1_dec
-            beq   csim1
-            dec
-csim1       jsr   write_h
+            bne   csimv1
+            inc
+csimv1      cmp   max_h
+            blt   csimvh
+            lda   max_h
+csimvh      clc
+            adc   #$20
+            jsr   cardwrite
             lda   arg2_dec
-            beq   csim2
-            dec
-csim2       jsr   write_v
+            bne   csimh1
+            inc
+csimh1      cmp   max_v
+            blt   csimvv
+            lda   max_v
+csimvv      clc
+            adc   #$20
+            jsr   cardwrite
             rts
 
 csi_erase2   jsr   $FC58
@@ -231,3 +243,5 @@ write_v     cmp   max_v
 write_v2    sta   $25
             inc   xy_first
             rts
+
+str_moveto  asc   'moveto: ',00
