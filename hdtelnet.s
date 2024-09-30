@@ -171,8 +171,24 @@ chmode      lda   vhd_slot
             jsr   vidhd_mode ; set new mode
             bra   mainloop
 noOA        pla
+            cmp   #$0b
+            bne   notup
+            lda   #$1B      ; send \x1b[A (CUP)
+            jsr   out
+            lda   #'['
+            jsr   out
+            lda   #'A'
             jsr   out       ; Send new character
             bra   mainloop
+notup       cmp   #$0a
+            bne   notdn
+            lda   #$1B      ; send \x1b[D (CDN)
+            jsr   out
+            lda   #'['
+            jsr   out
+            lda   #'D'
+notdn       jsr   out
+            jmp   mainloop
 newconn2    jmp   newconn
 closeconn   jsr   discon
 closedconn  jsr   $FC58
