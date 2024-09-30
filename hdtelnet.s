@@ -135,7 +135,9 @@ maindisp2   cmp   #$1B      ; is esc?
             bne   maindisp
             jsr   rcvd_esc
             bra   localin
-maindisp    jsr   dispchar  ; Display received character
+maindisp    cmp   #$0F
+            beq   localin   ; Throw away SI/SO, they just turn on inverse
+            jsr   dispchar  ; Display received character
 
 ; part III: send chars from kbd to net
 localin     jsr   kbd       ; Check keyboard
