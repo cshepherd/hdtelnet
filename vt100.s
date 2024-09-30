@@ -122,8 +122,6 @@ csi_movto   jsr   decode_args
             lda   #$1E
             jsr   cardwrite
             lda   arg2_dec
-            bne   csimv1
-            inc
 csimv1      cmp   max_h
             blt   csimvh
             lda   max_h
@@ -131,8 +129,6 @@ csimvh      clc
             adc   #$20
             jsr   cardwrite
             lda   arg1_dec
-            bne   csimh1
-            inc
 csimh1      cmp   max_v
             blt   csimvv
             lda   max_v
