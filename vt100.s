@@ -122,6 +122,8 @@ csi_movto   jsr   decode_args
             lda   #$1E
             jsr   cardwrite
             lda   arg2_dec
+            beq   csimv1
+            dec
 csimv1      cmp   max_h
             blt   csimvh
             lda   max_h
@@ -157,8 +159,6 @@ cdn         lda   #10
             plx
             dex
             bne   cdn
-            lda   #10
-            jsr   cardwrite
             rts
 
 csi_curfwd2  jsr  decode_args
