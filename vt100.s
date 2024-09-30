@@ -131,6 +131,8 @@ csimvh      clc
             adc   #$20
             jsr   cardwrite
             lda   arg1_dec
+            beq   csimh1
+            dec
 csimh1      cmp   max_v
             blt   csimvv
             lda   max_v
