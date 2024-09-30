@@ -182,11 +182,11 @@ noOA        pla
             bra   mainloop
 notup       cmp   #$0a
             bne   notdn
-            lda   #$1B      ; send \x1b[D (CDN)
+            lda   #$1B      ; send \x1b[B (CDN)
             jsr   out
             lda   #'['
             jsr   out
-            lda   #'D'
+            lda   #'B'
 notdn       jsr   out
             jmp   mainloop
 newconn2    jmp   newconn

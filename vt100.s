@@ -161,6 +161,8 @@ cdn         lda   #10
             plx
             dex
             bne   cdn
+            lda   #10
+            jsr   cardwrite
             rts
 
 csi_curfwd2  jsr  decode_args
