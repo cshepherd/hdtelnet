@@ -652,12 +652,24 @@ dispchar    pha
             bne   dcfded
             stz   xy_first
             pla
+            pha
             ora   #$80      ; set hi bit
-            jmp   cardwrite ; do pascal-vector write
+            jsr   cardwrite ; do pascal-vector write
+            pla
+            cmp   #$0D
+            beq   was_cr
+            rts
 dcfded      stz   xy_first
             pla
+            pha
             ora   #$80
             jsr   $fded
+            pla
+            cmp   #$0D
+            beq   was_cr
+            rts
+was_cr      dec   $25
+            inc   xy_first
             rts
 
 ; slotdet
