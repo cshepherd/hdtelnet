@@ -20,7 +20,7 @@ nots3       tax
             sta   readwrite+2
             sta   vhdget+2
             lda   #00         ; this gets printed when the screen clears
-            jsr   $c300
+initfw      jsr   $c300
             sec
             jsr   $fe1f
             bcc   vidhdgs
@@ -104,6 +104,7 @@ vloop       lda   vslots,x
             sta   vgetid2+2
             sta   vgetid3+2
             sta   vgetid4+2
+            sta   initfw+2
             jsr   vgetid1
             cmp   #$2C
             bne   vnc1
