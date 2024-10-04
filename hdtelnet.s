@@ -688,7 +688,10 @@ dcfded      stz   xy_first
             bra   dcx
 was_cr      dec   $25
             inc   xy_first
-            bra   dcx
+            lda   $25
+            sta   cursor_y
+            stz   cursor_x
+            rts
 
 ; slotdet
 ; attempt a variant of wizinit for different slots
