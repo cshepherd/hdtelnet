@@ -664,6 +664,7 @@ dispchar    pha
             pla
             pha
             ora   #$80      ; set hi bit
+            jsr   s_write
             jsr   cardwrite ; do pascal-vector write
             pla
             cmp   #$0D
@@ -679,6 +680,7 @@ dcfded      stz   xy_first
             pla
             pha
             ora   #$80
+            jsr   s_write
             jsr   $fded
             pla
             cmp   #$0D
@@ -955,4 +957,5 @@ connEstab   asc   'Connection established. Apple-X to close.',$8d,00
             use   vidhd.s
             use   adb.s
             use   bcdutil.s
+            use   shadow.s
             use   dhcp.s
