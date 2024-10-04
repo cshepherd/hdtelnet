@@ -657,7 +657,7 @@ nokey       rts
 ; all others should be done with the Pascal write vector
 dispchar    pha
             lda   $25
-            sta   $00      ; save original y position
+            sta   $02      ; save original y position
             lda   xy_first ; first output after setting xy?
             bne   dcfded
             stz   xy_first
@@ -672,7 +672,7 @@ dispchar    pha
 dcx         inc   cursor_x
             lda   $25
             sta   cursor_y
-            cmp   $00
+            cmp   $02
             beq   dc1
             stz   cursor_x
 dc1         rts
