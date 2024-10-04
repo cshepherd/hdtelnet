@@ -142,6 +142,8 @@ csimvv      clc
             rts
 
 csi_erase2   jsr   $FC58
+            stz   cursor_x
+            stz   cursor_y
             rts
 
 csi_curup2   dec   $25
@@ -149,6 +151,8 @@ csi_curup2   dec   $25
             bne   cu1
             stz   $25
 cu1         inc   xy_first
+            lda   $25
+            sta   cursor_y
             rts
 
 csi_curdown2 jsr  decode_args
@@ -161,9 +165,13 @@ cdn         lda   #10
             plx
             dex
             bne   cdn
+            lda   $25
+            sta   cursor_y
             rts
 
-csi_curfwd2  jsr  decode_args
+csi_curfwd2  lda  $25
+            pha
+            jsr   decode_args
             ldx   arg1_dec
             bne   cfw
             ldx   #1
@@ -173,9 +181,18 @@ cfw         lda   #28
             plx
             dex
             bne   cfw
-            rts
+            inc   cursor_x
+            pla
+            cmp   $25
+            beq   cfx
+            stz   cursor_x
+            lda   $25
+            sta   cursor_y
+cfx         rts
 
-csi_curback2 jsr  decode_args
+csi_curback2 lda  $25
+            pha
+            jsr   decode_args
             ldx   arg1_dec
             bne   cbk
             ldx   #1
@@ -185,7 +202,14 @@ cbk         lda   #8
             plx
             dex
             bne   cbk
-            rts
+            dec   cursor_x
+            pla
+            cmp   $25
+            beq   cbx
+            stz   cursor_x
+            lda   $25
+            sta   cursor_y
+cbx         rts
 
 decode_args lda   csi_arg1
             beq   da1ff
@@ -246,18 +270,4 @@ da4f        sta   testasc,X
             jsr   BCD2BIN
             lda   BINW
 da4ff       sta   arg4_dec
-            rts
-
-write_h     cmp   max_h
-            blt   write_h2
-            lda   max_h
-write_h2    sta   $24
-            inc   xy_first
-            rts
-
-write_v     cmp   max_v
-            blt   write_v2
-            lda   max_v
-write_v2    sta   $25
-            inc   xy_first
             rts

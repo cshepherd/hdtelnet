@@ -123,6 +123,10 @@ ps02        jsr   printres  ; Print DNS answer
             ldy   #>connEstab
             jsr   prtstr
 
+            stz   cursor_x  ; Initialize cursor-tracking
+            lda   $25
+            sta   cursor_y
+
 ; Do forever
 ; part I: display chars from net
 mainloop    jsr   netin     ; Get a byte frm network
@@ -225,6 +229,8 @@ tx_ptr      db    00,00
 tx_free     db    00,00
 stackptr    db    0
 xy_first    db    0
+cursor_x    db    0
+cursor_y    db    0
             use   dns.s
 
 ; set addr
@@ -650,6 +656,8 @@ nokey       rts
 ; The first character after changing x/y should be done through FDED
 ; all others should be done with the Pascal write vector
 dispchar    pha
+            lda   $25
+            sta   $00      ; save original y position
             lda   xy_first ; first output after setting xy?
             bne   dcfded
             stz   xy_first
@@ -660,7 +668,13 @@ dispchar    pha
             pla
             cmp   #$0D
             beq   was_cr
-            rts
+dcx         inc   cursor_x
+            lda   $25
+            sta   cursor_y
+            cmp   $00
+            beq   dc1
+            stz   cursor_x
+dc1         rts
 dcfded      stz   xy_first
             pla
             pha
@@ -669,10 +683,10 @@ dcfded      stz   xy_first
             pla
             cmp   #$0D
             beq   was_cr
-            rts
+            bra   dcx
 was_cr      dec   $25
             inc   xy_first
-            rts
+            bra   dcx
 
 ; slotdet
 ; attempt a variant of wizinit for different slots
