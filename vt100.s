@@ -50,11 +50,15 @@ notnum      cmp   #';'
             cmp   #$2C          ; merlin32 hates #','
             beq   inc_argno
             cmp   #'H'
-            beq   csi_movto
+            beq   jmpcsi_movto
             cmp   #'f'
-            beq   csi_movto
+            beq   jmpcsi_movto
+
+jmpcsi_movto jmp   csi_movto
             cmp   #'J'
             beq   csi_erase
+            cmp   #'K'
+            beq   csi_eraseol
             cmp   #'A'
             beq   csi_curup
             cmp   #'B'
@@ -68,6 +72,7 @@ notnum      cmp   #';'
 csi_curback jmp   csi_curback2
 csi_curup   jmp   csi_curup2
 csi_erase   jmp   csi_erase2
+csi_eraseol jmp   csi_eraseol2
 csi_curdown jmp   csi_curdown2
 csi_curfwd  jmp   csi_curfwd2
 
@@ -89,7 +94,8 @@ store_arg4  ldx   #00
             bra   ]z4
 sa4h        pla
             sta   csi_arg4,x
-            bra   csi_in
+            jsr   to_csi_in
+            rts
 
 store_arg3  ldx   #00
 ]z5         lda   csi_arg3,X
@@ -98,7 +104,8 @@ store_arg3  ldx   #00
             bra   ]z5
 sa3h        pla
             sta   csi_arg3,X
-            bra   csi_in
+            jsr   to_csi_in
+            rts
 
 store_arg2  ldx   #00
 ]z2         lda   csi_arg2,X
@@ -107,7 +114,10 @@ store_arg2  ldx   #00
             bra   ]z2
 sa2h        pla
             sta   csi_arg2,X
-            jmp   csi_in
+            jsr   to_csi_in
+            rts
+            
+to_csi_in   jmp   csi_in
 
 store_arg1  ldx   #00
 ]z3         lda   csi_arg1,X
@@ -116,7 +126,8 @@ store_arg1  ldx   #00
             bra   ]z3
 sa1h        pla
             sta   csi_arg1,X
-            jmp   csi_in
+            jsr   to_csi_in
+            rts
 
 csi_movto   jsr   decode_args
             lda   #$1E
@@ -141,9 +152,133 @@ csimvv      clc
             jsr   cardwrite
             rts
 
-csi_erase2   jsr   $FC58
+csi_erase2  jsr   decode_args
+            lda   arg1_dec
+            beq   erase_all     ; CSI 0J - erase from cursor to end of screen
+            cmp   #1
+            beq   erase_start   ; CSI 1J - erase from start to cursor
+            cmp   #2
+            beq   erase_all     ; CSI 2J - erase entire screen
+            rts
+
+erase_all   jsr   $FC58        ; HOME and clear screen
             stz   cursor_x
             stz   cursor_y
+            rts
+
+erase_start jsr   save_pos     ; Save cursor position
+            lda   #$1E         ; HOME cursor
+            jsr   cardwrite
+            lda   #$20         ; X = 0
+            jsr   cardwrite
+            lda   #$20         ; Y = 0
+            jsr   cardwrite
+            
+            ; Clear from start to current position
+erase_loop  lda   #' '         ; Space character
+            jsr   cardwrite
+            
+            ; Check if we've reached the saved position
+            lda   cursor_x
+            cmp   saved_x
+            bne   erase_loop
+            lda   cursor_y
+            cmp   saved_y
+            bne   erase_loop
+            
+            jsr   restore_pos  ; Restore cursor position
+            rts
+
+; Helpers for saving and restoring position
+save_pos    lda   cursor_x
+            sta   saved_x
+            lda   cursor_y
+            sta   saved_y
+            rts
+
+restore_pos lda   #$1E         ; HOME cursor
+            jsr   cardwrite
+            lda   saved_x      ; Restore X
+            clc
+            adc   #$20
+            jsr   cardwrite
+            lda   saved_y      ; Restore Y
+            clc
+            adc   #$20
+            jsr   cardwrite
+            rts
+
+saved_x     db    00
+saved_y     db    00
+
+csi_eraseol2 jsr   decode_args
+            lda   arg1_dec
+            beq   erase_to_end    ; CSI 0K - erase from cursor to end of line
+            cmp   #1
+            beq   erase_to_start  ; CSI 1K - erase from start of line to cursor
+            cmp   #2
+            beq   erase_line      ; CSI 2K - erase entire line
+            rts
+            
+erase_to_end
+            ; Erase from cursor to end of line
+            lda   #' '
+etoe_loop   jsr   cardwrite
+            inc   cursor_x
+            lda   cursor_x
+            cmp   max_h
+            blt   etoe_loop
+            jsr   restore_pos
+            rts
+            
+erase_to_start
+            ; Save current position
+            jsr   save_pos
+            
+            ; Move to start of line
+            lda   #$1E         ; HOME cursor
+            jsr   cardwrite
+            lda   #$20         ; X = 0
+            jsr   cardwrite
+            lda   saved_y      ; Same Y
+            clc
+            adc   #$20
+            jsr   cardwrite
+            
+            ; Erase to current position
+            lda   #' '
+ets_loop    jsr   cardwrite
+            inc   cursor_x
+            lda   cursor_x
+            cmp   saved_x
+            blt   ets_loop
+            
+            jsr   restore_pos
+            rts
+            
+erase_line
+            ; Save current position
+            jsr   save_pos
+            
+            ; Move to start of line
+            lda   #$1E         ; HOME cursor
+            jsr   cardwrite
+            lda   #$20         ; X = 0
+            jsr   cardwrite
+            lda   saved_y      ; Same Y
+            clc
+            adc   #$20
+            jsr   cardwrite
+            
+            ; Erase whole line
+            lda   #' '
+el_loop     jsr   cardwrite
+            inc   cursor_x
+            lda   cursor_x
+            cmp   max_h
+            blt   el_loop
+            
+            jsr   restore_pos
             rts
 
 csi_curup2   dec   $25
