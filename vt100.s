@@ -94,8 +94,7 @@ store_arg4  ldx   #00
             bra   ]z4
 sa4h        pla
             sta   csi_arg4,x
-            jsr   to_csi_in
-            rts
+            jmp   csi_in
 
 store_arg3  ldx   #00
 ]z5         lda   csi_arg3,X
@@ -104,8 +103,7 @@ store_arg3  ldx   #00
             bra   ]z5
 sa3h        pla
             sta   csi_arg3,X
-            jsr   to_csi_in
-            rts
+            jmp   csi_in
 
 store_arg2  ldx   #00
 ]z2         lda   csi_arg2,X
@@ -114,10 +112,7 @@ store_arg2  ldx   #00
             bra   ]z2
 sa2h        pla
             sta   csi_arg2,X
-            jsr   to_csi_in
-            rts
-            
-to_csi_in   jmp   csi_in
+            jmp   csi_in
 
 store_arg1  ldx   #00
 ]z3         lda   csi_arg1,X
@@ -126,8 +121,7 @@ store_arg1  ldx   #00
             bra   ]z3
 sa1h        pla
             sta   csi_arg1,X
-            jsr   to_csi_in
-            rts
+            jmp   csi_in
 
 csi_movto   jsr   decode_args
             lda   #$1E
@@ -173,7 +167,6 @@ erase_start jsr   save_pos     ; Save cursor position
             jsr   cardwrite
             lda   #$20         ; Y = 0
             jsr   cardwrite
-            
             ; Clear from start to current position
 erase_loop  lda   #' '         ; Space character
             jsr   cardwrite
@@ -244,7 +237,6 @@ erase_to_start
             clc
             adc   #$20
             jsr   cardwrite
-            
             ; Erase to current position
             lda   #' '
 ets_loop    jsr   cardwrite
@@ -269,7 +261,6 @@ erase_line
             clc
             adc   #$20
             jsr   cardwrite
-            
             ; Erase whole line
             lda   #' '
 el_loop     jsr   cardwrite
