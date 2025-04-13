@@ -691,7 +691,10 @@ was_cr      dec   $25
             lda   $25
             sta   cursor_y
             stz   cursor_x
-            rts
+            cmp   #23            ; Check if we're at line 23 (last line)
+            bne   no_scroll      ; If not, no scrolling needed
+            jsr   scroll_shadow  ; Scroll the shadow screen
+no_scroll   rts
 
 ; slotdet
 ; attempt a variant of wizinit for different slots
