@@ -21,7 +21,62 @@ s_write     pha
             stz  $c005        ; Write to Aux RAM
             sta  ($00)
             stz  $c004        ; Write to Main RAM
-            rts 
+            rts
+
+; Scroll the shadow screen by shifting all line pointers up
+; except the first one, which goes to the end
+scroll_shadow
+            ldx  #0           ; Start at the first entry
+ss_loop     cpx  #46          ; Check if we've reached the second-to-last entry (24*2-2)
+            beq  ss_last      ; If so, handle the last entry specially
+            
+            ; Move each pointer up one line
+            lda  slookup+2,x  ; Get the next line's low byte
+            sta  slookup,x    ; Store it in the current line's low byte
+            lda  slookup+3,x  ; Get the next line's high byte
+            sta  slookup+1,x  ; Store it in the current line's high byte
+            
+            inx               ; Move to the next entry
+            inx               ; (Each entry is 2 bytes)
+            bra  ss_loop      ; Continue the loop
+            
+ss_last     ; Handle the last entry specially (it becomes the new bottom line)
+            lda  slookup      ; Get the original first line's low byte
+            sta  slookup+46   ; Store it in the last line's low byte
+            lda  slookup+1    ; Get the original first line's high byte
+            sta  slookup+47   ; Store it in the last line's high byte
+            
+            ; Clear the new bottom line
+            jsr  clear_bottom_line
+            
+            rts
+
+; Clear the bottom line in the shadow buffer
+clear_bottom_line
+            pha               ; Save registers
+            phx
+            phy
+            
+            ldx  #46          ; Index for the last line (23rd line, 2 bytes per entry)
+            lda  slookup,x    ; Low byte of the address
+            sta  $00
+            lda  slookup+1,x  ; High byte of the address
+            sta  $01
+            
+            ldy  #0           ; Start at column 0
+            lda  #$A0         ; Space character with high bit set
+cbl_loop    stz  $c005        ; Write to Aux RAM
+            sta  ($00),y      ; Clear character at current position
+            stz  $c004        ; Write to Main RAM
+            
+            iny               ; Move to next column
+            cpy  #240         ; Check if we've reached the end of the line (max width)
+            bne  cbl_loop     ; If not, continue the loop
+            
+            ply               ; Restore registers
+            plx
+            pla
+            rts
 
 ; start of each horizontal line in 'shadow' ram
 slookup     dw   $2000
